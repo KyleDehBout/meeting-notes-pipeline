@@ -147,6 +147,20 @@ Do not copy .gitkeep files.
 ### Create CLAUDE.md at project root
 Copy [repo-root]/project-template/CLAUDE.md to PROJECT_PATH/CLAUDE.md.
 
+### Create Claude launcher
+Create a file at PROJECT_PATH named exactly:
+  Claude Launcher — PROJECT_NAME.command
+
+Write the following content into it:
+```
+#!/bin/bash
+cd "$(dirname "$0")"
+claude
+```
+
+Make it executable:
+  chmod +x "PROJECT_PATH/Claude Launcher — PROJECT_NAME.command"
+
 ---
 
 ## Step 4 — Populate project files
@@ -202,6 +216,10 @@ Meeting Notes folder:
   ├── intake/            ← drop supervisor-approved files here
   ├── Archive/           ← issued notes archive
   └── skills/            ← your style and hard rules
+
+Launcher created:
+  PROJECT_PATH/Claude Launcher — PROJECT_NAME.command
+  └── Double-click this in Finder to open Claude Code in the right folder
 
 [If past notes were uploaded, include this block:]
 Auto-populated from your uploaded notes:
