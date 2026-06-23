@@ -149,7 +149,7 @@ Copy [repo-root]/project-template/CLAUDE.md to PROJECT_PATH/CLAUDE.md.
 
 ### Create Claude launcher
 Create a file at PROJECT_PATH named exactly:
-  Claude Launcher — PROJECT_NAME.command
+  Claude — PROJECT_NAME Meeting Notes Launcher.command
 
 Write the following content into it:
 ```
@@ -159,7 +159,7 @@ claude
 ```
 
 Make it executable:
-  chmod +x "PROJECT_PATH/Claude Launcher — PROJECT_NAME.command"
+  chmod +x "PROJECT_PATH/Claude — PROJECT_NAME Meeting Notes Launcher.command"
 
 ---
 
@@ -218,7 +218,7 @@ Meeting Notes folder:
   └── skills/            ← your style and hard rules
 
 Launcher created:
-  PROJECT_PATH/Claude Launcher — PROJECT_NAME.command
+  PROJECT_PATH/Claude — PROJECT_NAME Meeting Notes Launcher.command
   └── Double-click this in Finder to open Claude Code in the right folder
 
 [If past notes were uploaded, include this block:]
