@@ -14,6 +14,7 @@
 - Issued archive: Meeting Notes/
 - Supervisor style guide: supervisor-style-guide-[PROJECT].md
 - Pipeline memory: pipeline-memory-[PROJECT].md
+- Supervisor activation threshold: 3
 
 ## Project roster — [PROJECT NAME]
 | Name | Organisation | Title |

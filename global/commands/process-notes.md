@@ -3,6 +3,30 @@
 ## Before starting
 Load CLAUDE.md — project roster, org names, and file locations.
 
+## Pre-flight check — run before Stage 1
+
+Check the following in order.
+
+### Blocking (stop entirely):
+- If transcripts/ is empty:
+  Print "No transcript found in transcripts/ — add a transcript file and run /process-notes again."
+  Stop. Do not proceed.
+
+### Warnings (collect all, then ask once):
+Check each of the following:
+- CLAUDE.md roster contains a `[Name]` placeholder → "Roster has placeholder entries — attribution validation will be unreliable."
+- The formatter skill file (listed in CLAUDE.md) contains `[TO BE FILLED IN]` → "Formatter skill file has unfilled sections — output quality may be low."
+- skills/style-rules/SKILL.md contains `[TO BE FILLED IN]` → "Style rules skill have unfilled sections — output quality may be low."
+
+If any warnings exist, print all of them, then ask:
+"Proceed anyway? (y/n)"
+If n: stop.
+If y: proceed to Stage 1.
+
+If no warnings: proceed to Stage 1 silently.
+
+---
+
 ## Pipeline — 4 stages in strict order, no skipping
 
 ### Stage 1 — formatter
@@ -38,10 +62,11 @@ Receive corrected draft plus DISCIPLINE NOTE.
 ### Stage 4 — supervisor-alignment
 Files to pass to the supervisor-alignment agent:
 - Stage 3 draft
+- CLAUDE.md
 - The supervisor style guide file listed in CLAUDE.md under "Key file locations"
 
-Agent self-checks the style guide entry count and either applies preferences or reports
-the guide is still being built.
+Agent applies manually seeded preferences always, and recurring corrections once the
+threshold in CLAUDE.md is reached.
 Receive final draft.
 
 ## Output
@@ -52,4 +77,4 @@ output/meeting-notes-YYYY-MM-DD.docx
 - Which transcript was processed and its date
 - EDITORIAL NOTE from Stage 2
 - DISCIPLINE NOTE from Stage 3
-- Whether Stage 4 applied corrections or passed through
+- SUPERVISOR NOTE from Stage 4 (if recurring corrections not yet at threshold)

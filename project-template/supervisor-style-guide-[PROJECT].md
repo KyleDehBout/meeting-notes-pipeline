@@ -5,9 +5,16 @@ This file records every correction your supervisor makes to issued meeting notes
 It is read by the supervisor-alignment agent on every /process-notes run and updated
 automatically by the learning-reviewer agent after every /learn cycle.
 
-The supervisor-alignment stage is inactive until 5 or more corrections are logged under
-"Recurring corrections". You can seed this file manually with known preferences, or leave
-it blank and let it fill in through /learn cycles.
+## What is always active
+The sections below — Wording preferences, Structural preferences, Scope preferences,
+and Promoted rules — are applied on every /process-notes run the moment you write
+anything in them. Seed them manually with known preferences and they take effect immediately.
+
+## What activates at the threshold
+The "Recurring corrections" section only activates once it reaches the number of entries
+set by "Supervisor activation threshold" in CLAUDE.md (default: 3). This protects against
+one-off corrections becoming permanent rules prematurely. Once the threshold is reached,
+all recurring corrections are applied automatically on every run.
 
 ## Wording preferences
 <!-- Add known wording preferences here. Example:
