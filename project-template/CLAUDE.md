@@ -5,15 +5,15 @@
 - Full project path: [FULL PATH TO PROJECT FOLDER]
 
 ## Key file locations
-- Style skill: skills/style-rules/SKILL.md
-- Hard rules skill: skills/hard-rules/SKILL.md
-- Formatter skill: meeting-notes-formatter-skill-[PROJECT].md
-- Transcripts: transcripts/
-- Output (pipeline drafts): output/
-- Intake (final issued files for learning): intake/
-- Issued archive: Meeting Notes/
-- Supervisor style guide: supervisor-style-guide-[PROJECT].md
-- Pipeline memory: pipeline-memory-[PROJECT].md
+- Style skill: Meeting Notes/skills/style-rules/SKILL.md
+- Hard rules skill: Meeting Notes/skills/hard-rules/SKILL.md
+- Formatter skill: Meeting Notes/meeting-notes-formatter-skill-[PROJECT].md
+- Transcripts: Meeting Notes/transcripts/
+- Output (pipeline drafts): Meeting Notes/output/
+- Intake (final issued files for learning): Meeting Notes/intake/
+- Issued archive: Meeting Notes/Archive/
+- Supervisor style guide: Meeting Notes/supervisor-style-guide-[PROJECT].md
+- Pipeline memory: Meeting Notes/pipeline-memory-[PROJECT].md
 - Supervisor activation threshold: 3
 
 ## Project roster — [PROJECT NAME]
