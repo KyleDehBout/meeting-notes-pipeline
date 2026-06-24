@@ -15,6 +15,10 @@
 - Supervisor style guide: Meeting Notes/supervisor-style-guide-[PROJECT].md
 - Pipeline memory: Meeting Notes/pipeline-memory-[PROJECT].md
 - Supervisor activation threshold: 3
+- DOCX renderer skill: Meeting Notes/skills/docx-renderer/SKILL.md
+- DOCX renderer scripts: Meeting Notes/skills/docx-renderer/scripts/
+- DOCX blank template: Meeting Notes/[PROJECT]_blank_template.docx
+- DOCX working dir: Meeting Notes/working/
 
 ## Project roster — [PROJECT NAME]
 | Name | Organisation | Title |

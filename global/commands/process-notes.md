@@ -25,7 +25,7 @@ If no warnings: proceed to Stage 1 silently.
 
 ---
 
-## Pipeline — 4 stages in strict order, no skipping
+## Pipeline — 5 stages in strict order, no skipping
 
 ### Stage 1 — formatter
 Find the most recent file in the transcripts folder listed in CLAUDE.md.
@@ -66,12 +66,18 @@ Agent applies manually seeded preferences always, and recurring corrections once
 threshold in CLAUDE.md is reached.
 Receive final draft.
 
-## Output
-Save final draft to the output folder listed in CLAUDE.md, named:
-meeting-notes-YYYY-MM-DD.docx
+### Stage 5 — docx-renderer
+Files to pass to the docx-renderer agent:
+- Stage 4 final draft (markdown)
+- CLAUDE.md
 
-## Summary report — print after saving
+Agent clones the blank template, replaces the document body with rendered XML, repacks,
+validates, and saves the output file.
+Receive completion status and output file path.
+
+## Summary report — print after Stage 5 completes
 - Which transcript was processed and its date
 - EDITORIAL NOTE from Stage 2
 - DISCIPLINE NOTE from Stage 3
 - SUPERVISOR NOTE from Stage 4 (if recurring corrections not yet at threshold)
+- Output file path from Stage 5

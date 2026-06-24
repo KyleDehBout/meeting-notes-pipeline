@@ -7,25 +7,43 @@ your style, roster, and organisation names automatically.
 
 ---
 
-## Step 0 — Optional: Upload past notes
+## Step 0 — Upload documents
 
 Before asking any questions, prompt the user with exactly this:
 
 ---
-Before we set up your project, do you have any past meeting notes you've already
-produced and are happy with? If so, upload one or two now — I'll extract your style,
-roster, and organisation names automatically and use them to pre-fill your project files.
+Before we set up your project, I need two things:
 
-You can upload a .docx, .pdf, or paste the content directly.
-If you don't have any, just say "skip" and I'll ask you for the details manually.
+**1. A branded .docx template** (required) — any existing meeting notes or letterhead file
+that already has your organisation's header, footer, and logo. I'll strip the body content
+and use it as the blank template for every render. This is what gives every output document
+your branding automatically.
+
+**2. Past meeting notes** (optional) — one or two finished notes you're happy with. I'll
+extract your style, roster, and organisation names automatically and use them to pre-fill
+your project files.
+
+Upload both now, or upload the template file and say "skip" for past notes, or say "skip all"
+to fill everything in manually.
 ---
 
 Wait for the user to respond.
 
-### If the user uploads or pastes past notes:
+### Handling the branded template upload:
 
-Read every uploaded document fully before proceeding. Extract the following silently
-— do not print the analysis, just hold it for use in later steps:
+If the user uploads a .docx file, check whether it is likely a branded template or a finished
+meeting notes file — either works. Save its file path as TEMPLATE_SOURCE.
+
+If no .docx is uploaded: ask once more — "A branded .docx is required to set up the document
+renderer. Do you have one to upload?" If still none, set TEMPLATE_SOURCE to empty and warn:
+"⚠ No template uploaded — the DOCX renderer will not be fully set up. You can create the
+blank template later by running: python [skills/docx-renderer/scripts/create_blank_template.py]
+<source.docx> <output_blank.docx>"
+
+### Handling past notes:
+
+If the user uploads or pastes past notes, read every document fully before proceeding. Extract
+the following silently — do not print the analysis, just hold it for use in later steps:
 
 **From the Attendees section:**
 - Team roster: every person's full name, organisation, and title
@@ -53,7 +71,7 @@ are used to auto-populate files. LOW items are flagged for the user to confirm.
 
 Save all extracted data as EXTRACTED_DATA for use in Steps 1–4.
 
-### If the user says "skip":
+### If the user says "skip" for past notes:
 Set EXTRACTED_DATA to empty. Proceed to Step 1 with manual questions only.
 
 ---
@@ -130,8 +148,11 @@ Create the following inside PROJECT_PATH/MEETING_NOTES_FOLDER/:
 - transcripts/
 - output/
 - intake/
+- working/
 - skills/style-rules/references/
 - skills/hard-rules/references/
+- skills/docx-renderer/references/
+- skills/docx-renderer/scripts/
 
 ### Copy template files
 Copy all files from [repo-root]/project-template/Meeting Notes/ into
@@ -143,6 +164,20 @@ PROJECT_PATH/MEETING_NOTES_FOLDER/, with these renames — replace the literal s
 
 Copy skills/ subdirectory contents preserving folder structure.
 Do not copy .gitkeep files.
+
+### Create blank template for DOCX renderer
+
+If TEMPLATE_SOURCE is set:
+
+```bash
+python "[PROJECT_PATH/MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/create_blank_template.py]" \
+  "[TEMPLATE_SOURCE]" \
+  "[PROJECT_PATH/MEETING_NOTES_FOLDER/PROJECT_NAME_blank_template.docx]"
+```
+
+If the script prints "OK": save the output path as BLANK_TEMPLATE_PATH.
+If it fails: print the error, set BLANK_TEMPLATE_PATH to empty, and warn the user they will
+need to create the blank template manually before running /process-notes.
 
 ### Create CLAUDE.md at project root
 Copy [repo-root]/project-template/CLAUDE.md to PROJECT_PATH/CLAUDE.md.
@@ -173,6 +208,14 @@ Open the newly created CLAUDE.md at PROJECT_PATH and make the following replacem
 - Every occurrence of [PROJECT] in file location values → PROJECT_NAME
 - Placeholder roster rows → one table row per ROSTER entry: | Name | Organisation | Title |
 - [Org1, Org2, Org3...] → ORG_NAMES (comma-separated, exactly as confirmed)
+
+### DOCX renderer entries in CLAUDE.md
+
+In addition to the standard replacements, fill in the four DOCX renderer keys:
+- `[PROJECT]_blank_template.docx` → BLANK_TEMPLATE_PATH (or leave with warning comment if not set)
+- `DOCX renderer scripts` → `MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/`
+- `DOCX working dir` → `MEETING_NOTES_FOLDER/working/`
+- `DOCX renderer skill` → `MEETING_NOTES_FOLDER/skills/docx-renderer/SKILL.md`
 
 ### Formatter skill file
 Open meeting-notes-formatter-skill-PROJECT_NAME.md.
@@ -215,11 +258,21 @@ Meeting Notes folder:
   ├── output/            ← pipeline drafts appear here
   ├── intake/            ← drop supervisor-approved files here
   ├── Archive/           ← issued notes archive
-  └── skills/            ← your style and hard rules
+  ├── working/           ← docx renderer scratch space (not for manual editing)
+  └── skills/            ← your style, hard rules, and docx renderer
 
 Launcher created:
   PROJECT_PATH/Claude — PROJECT_NAME Meeting Notes Launcher.command
   └── Double-click this in Finder to open Claude Code in the right folder
+
+[If BLANK_TEMPLATE_PATH is set:]
+DOCX blank template created:
+  BLANK_TEMPLATE_PATH
+  └── Headers, footers, and branding preserved from your uploaded file
+
+[If BLANK_TEMPLATE_PATH is empty:]
+⚠ DOCX blank template not created — create it before running /process-notes:
+  python MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/create_blank_template.py <source.docx> MEETING_NOTES_FOLDER/PROJECT_NAME_blank_template.docx
 
 [If past notes were uploaded, include this block:]
 Auto-populated from your uploaded notes:

@@ -1,7 +1,7 @@
 ---
 name: supervisor-alignment
 description: >
-  Always the fourth and final agent called by /process-notes. Loads the supervisor style
+  Always the fourth agent called by /process-notes. Loads the supervisor style
   guide listed in CLAUDE.md under "Key file locations" and applies documented corrections
   and preferences. Manually seeded preferences (Wording, Structural, Scope, Promoted rules)
   are always applied. The Recurring corrections section activates once the number of logged
