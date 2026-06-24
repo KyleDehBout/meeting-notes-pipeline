@@ -165,19 +165,23 @@ PROJECT_PATH/MEETING_NOTES_FOLDER/, with these renames — replace the literal s
 Copy skills/ subdirectory contents preserving folder structure.
 Do not copy .gitkeep files.
 
-### Create blank template for DOCX renderer
+### Run DOCX renderer setup
 
-If TEMPLATE_SOURCE is set:
+If TEMPLATE_SOURCE is set, run the comprehensive setup script. This single step creates
+the blank template AND extracts all formatting values (fonts, column widths, spacing,
+colours, tab stops, numIds) from the source document to produce fully-populated reference
+files — no manual editing of reference files required.
 
 ```bash
-python "[PROJECT_PATH/MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/create_blank_template.py]" \
+python "[PROJECT_PATH/MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/setup_docx_renderer.py]" \
   "[TEMPLATE_SOURCE]" \
-  "[PROJECT_PATH/MEETING_NOTES_FOLDER/PROJECT_NAME_blank_template.docx]"
+  "[PROJECT_NAME]" \
+  "[PROJECT_PATH/MEETING_NOTES_FOLDER]"
 ```
 
-If the script prints "OK": save the output path as BLANK_TEMPLATE_PATH.
+If the script completes successfully: save the blank template path as BLANK_TEMPLATE_PATH.
 If it fails: print the error, set BLANK_TEMPLATE_PATH to empty, and warn the user they will
-need to create the blank template manually before running /process-notes.
+need to run setup_docx_renderer.py manually before using /process-notes.
 
 ### Create CLAUDE.md at project root
 Copy [repo-root]/project-template/CLAUDE.md to PROJECT_PATH/CLAUDE.md.
