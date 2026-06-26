@@ -29,6 +29,12 @@ Follow the 7-step workflow in SKILL.md exactly. Copy the checklist into your res
 
 Load reference files (`references/title-and-attendees.md`, `references/table-structure.md`, `references/footer-and-special.md`) only when building the relevant XML sections — do not pre-load all three.
 
+**Response discipline — non-negotiable:**
+- Never print XML blocks in your response at any step — write XML directly to disk via Python script
+- Never print Python script bodies in your response — write the script to a temp file and run it
+- Each step response must be one line confirming what was done
+- Validation retries are capped at 3 — stop and report failure after the third attempt
+
 ## Step 3 — Return status
 
 On success, return:
@@ -41,4 +47,4 @@ On failure at any step, return:
 RENDER FAILED at Step [N]: [error message]
 ```
 
-Do not proceed past a failed validation. Fix the XML and retry before reporting failure.
+Do not proceed past a failed validation. Fix the XML and retry (max 3 total attempts) before reporting failure.

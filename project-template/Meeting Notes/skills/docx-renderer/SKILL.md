@@ -26,9 +26,13 @@ Render Progress:
 
 ## Step 1: Clone the blank template
 
-Read `DOCX blank template` and `DOCX working dir` from CLAUDE.md. Create the working dir if it does not exist.
+Read `DOCX blank template` and `DOCX working dir` from CLAUDE.md.
+
+**Always clean the working directory first — even on a restart:**
 
 ```bash
+rm -rf "[DOCX working dir]"
+mkdir -p "[DOCX working dir]"
 cp "[DOCX blank template]" "[DOCX working dir]/meeting-notes-working.docx"
 ```
 
@@ -57,9 +61,11 @@ Do NOT touch these files after unpacking:
 
 ## Step 3: Generate body XML
 
-Build the replacement `<w:body>` content from the meeting notes markdown.
+**NEVER print XML in your response.** Write all XML directly to disk using a Python script. Your response for this step must be one line: `Step 3: body XML written to [path]`.
 
-For full XML patterns, see:
+Read the reference files silently to understand the XML patterns, then write and run a Python script that generates the complete body XML and saves it to `[DOCX working dir]/body.xml`. Do not print the script or any XML in your response.
+
+For XML patterns, read silently:
 - **[references/title-and-attendees.md](references/title-and-attendees.md)** — Title block and attendees section
 - **[references/table-structure.md](references/table-structure.md)** — Main table, all row types
 - **[references/footer-and-special.md](references/footer-and-special.md)** — Footer paragraph, superscripts, special chars
@@ -87,7 +93,9 @@ Document structure (top to bottom):
 
 ## Step 4: Replace document body
 
-Edit `[DOCX working dir]/unpacked/word/document.xml`. Replace only the content between `<w:body>` and `</w:body>`. Do not alter the root `<w:document>` element or its namespace declarations.
+Use a Python script to replace the body of `[DOCX working dir]/unpacked/word/document.xml` with the content of `[DOCX working dir]/body.xml`. Do not print the script or any XML in your response — just run it and confirm success in one line.
+
+Replace only the content between `<w:body>` and `</w:body>`. Do not alter the root `<w:document>` element or its namespace declarations.
 
 **CRITICAL rules:**
 - Escape all ampersands: `&` → `&amp;`
@@ -116,10 +124,10 @@ python "[DOCX renderer scripts]/validate.py" \
 
 **If validation fails:**
 1. Read the error message carefully
-2. Return to Step 4 and fix the XML
+2. Return to Step 4 and fix the XML (via Python script — do not print XML in response)
 3. Repack (Step 5)
 4. Validate again
-5. Do not proceed until validation passes
+5. **Maximum 3 validation attempts total.** If validation has not passed after 3 attempts, stop and report: `RENDER FAILED: validation error after 3 attempts — [error message]`. Do not continue looping.
 
 ---
 
@@ -140,6 +148,10 @@ Return: `RENDER COMPLETE: [output path]`
 
 | Rule | Detail |
 |------|--------|
+| **No inline XML in responses** | Never print XML blocks in response text — always write to disk via script. One-line confirmation only. |
+| **No inline scripts in responses** | Write Python scripts to a temp file and run them — do not print the script body in your response. |
+| **Validation cap** | Maximum 3 validation attempts — fail and report after that, do not loop further. |
+| **Clean working dir on start** | Always rm -rf the working dir before Step 1, even on a restart. |
 | No npm `docx` library | Template-clone + XML edit only |
 | Action column | Company/team names only — never individual person names |
 | Status values | `In Progress`, `Pending`, `Completed` — no other values permitted |
