@@ -7,6 +7,7 @@
 ## Key file locations
 - Style skill: Meeting Notes/skills/style-rules/SKILL.md
 - Hard rules skill: Meeting Notes/skills/hard-rules/SKILL.md
+- Humanizer skill: Meeting Notes/skills/humanizer/SKILL.md
 - Formatter skill: Meeting Notes/meeting-notes-formatter-skill-[PROJECT].md
 - Transcripts: Meeting Notes/transcripts/
 - Output (pipeline drafts): Meeting Notes/output/

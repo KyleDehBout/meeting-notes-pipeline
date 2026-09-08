@@ -154,6 +154,7 @@ Create the following inside PROJECT_PATH/MEETING_NOTES_FOLDER/:
 - working/
 - skills/style-rules/references/
 - skills/hard-rules/references/
+- skills/humanizer/references/
 - skills/docx-renderer/references/
 - skills/docx-renderer/scripts/
 
@@ -223,6 +224,7 @@ In addition to the standard replacements, fill in the four DOCX renderer keys:
 - `DOCX renderer scripts` → `MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/`
 - `DOCX working dir` → `MEETING_NOTES_FOLDER/working/`
 - `DOCX renderer skill` → `MEETING_NOTES_FOLDER/skills/docx-renderer/SKILL.md`
+- `Humanizer skill` → `MEETING_NOTES_FOLDER/skills/humanizer/SKILL.md`
 
 ### Formatter skill file
 Open meeting-notes-formatter-skill-PROJECT_NAME.md.
@@ -241,6 +243,11 @@ prompts elsewhere.
 
 The hard rules terminology reference: if technical terms were extracted from uploaded
 notes, add them under the appropriate category.
+
+### Humanizer skill file
+Do not populate this one. It ships complete and is project-independent — copy
+`skills/humanizer/` across as-is, including `references/`. It has no `[TO BE FILLED IN]`
+sections and takes no extracted data.
 
 ---
 
@@ -266,7 +273,7 @@ Meeting Notes folder:
   ├── intake/            ← drop supervisor-approved files here
   ├── Archive/           ← issued notes archive
   ├── working/           ← docx renderer scratch space (not for manual editing)
-  └── skills/            ← your style, hard rules, and docx renderer
+  └── skills/            ← your style, hard rules, humanizer, and docx renderer
 
 Launcher created:
   PROJECT_PATH/Claude — PROJECT_NAME Meeting Notes Launcher.command

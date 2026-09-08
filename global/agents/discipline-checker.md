@@ -21,6 +21,9 @@ Verify and correct every attribution in the Action column against the project ro
 3. Two-party actions use the correct slash format: `Org A/Org B`
 4. Every row has an Action value — blank is not acceptable
 5. Status is one of exactly three values: `In Progress`, `Pending`, `No Action`
+6. Scan the Status column for the literal string `Outstanding` — if found, auto-correct it to
+   `Pending` before returning the draft; this rule wins even if a later-stage wording preference
+   (e.g. supervisor style guide "outstanding" not "pending") would otherwise reintroduce it
 
 ## Output
 Return the complete corrected draft as plain text followed by a DISCIPLINE NOTE section:

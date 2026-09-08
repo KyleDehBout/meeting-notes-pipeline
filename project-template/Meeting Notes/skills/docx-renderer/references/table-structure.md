@@ -7,6 +7,7 @@
 ## Contents
 - Table properties
 - Header row
+- Row model — one row per section
 - Content row — col 1 (row number)
 - Content row — col 2 (discussion content, list levels)
 - Content row — col 3 (action)
@@ -90,6 +91,42 @@ Row height typically 116 DXA. Col 1 is empty; cols 2–4 have bold centred text.
 
 ---
 
+## Row model — one row per section
+
+**A table row is a SECTION, not an item.** One top-level section of the notes
+occupies exactly one `<w:tr>`. Everything belonging to that section — its title,
+its subsection labels and all of its numbered sub-items — lives as multiple
+paragraphs inside that single row's col 2.
+
+Do not open a new row for each sub-item. Col 1 carries the section counter, so a
+row per sub-item advances the section number on every line: section titles lose
+their number entirely and sub-items render with a zero in the middle ("3.0.1")
+because the ilvl-1 counter never advanced. `validate.py` fails a document whose
+rows advance the counter without carrying a section title.
+
+```
+<w:tr>                          ← section 1
+  col 1: counter paragraph      ← numPr, ilvl 0, live numId   → renders "1."
+  col 2: section title          ← numPr, ilvl 0, numId="0"    → number suppressed
+         subsection label       ← numPr, ilvl 1, live numId   → renders "1.1"
+         sub-item               ← numPr, ilvl 2, live numId   → renders "1.1.1"
+         sub-item               ← numPr, ilvl 2, live numId   → renders "1.1.2"
+  col 3: blank ×3, then "ONLE" on the paragraph facing its sub-item
+  col 4: blank ×3, then "Pending" on the same index
+</w:tr>
+<w:tr>                          ← section 2
+  ...
+</w:tr>
+```
+
+Cols 3 and 4 hold one paragraph per col-2 paragraph, so an Action or Status sits
+on the same visual line as the sub-item it belongs to. Paragraphs facing a section
+title or a subsection label are empty.
+
+The final Meetings row is the one exception: it carries no counter in col 1.
+
+---
+
 ## Content rows — shared border rule
 
 Every content row cell (except the Meetings row) has a bottom border only:
@@ -133,19 +170,47 @@ Uses a numbering style from `numbering.xml`. Verify the correct `numId` value by
 
 All levels reference `numId` from `numbering.xml`. Do not redefine — reference only.
 
-### Level 0 — Topic heading
+### Level 0 — Section title
 
-Bold topic text. Main heading for the row.
+The section's own number is painted by the col 1 counter, so this paragraph must
+**suppress** its number rather than omit numbering altogether. `numId="0"` at
+`ilvl="0"` is the suppression — it is deliberate here and is the one place in the
+document where `numId="0"` is correct.
+
+Omitting `<w:numPr>` entirely is a bug: the paragraph then falls back to its list
+style's own numbering and the section title drifts out of the hierarchy.
 
 ```xml
 <w:p>
   <w:pPr>
     <w:pStyle w:val="[list style name]"/>
+    <w:numPr>
+      <w:ilvl w:val="0"/>
+      <w:numId w:val="0"/>
+    </w:numPr>
     <w:spacing w:line="240" w:lineRule="auto"/>
   </w:pPr>
   <w:r>
-    <w:t>Topic heading text</w:t>
+    <w:t>Section title text</w:t>
   </w:r>
+</w:p>
+```
+
+### Level 1 — Subsection label
+
+Renders as "1.1", "1.2" … Italic, no bold. One per topic within the section.
+
+```xml
+<w:p>
+  <w:pPr>
+    <w:pStyle w:val="[sub-list style name]"/>
+    <w:numPr>
+      <w:ilvl w:val="1"/>
+      <w:numId w:val="[numId]"/>
+    </w:numPr>
+    <w:spacing w:line="240" w:lineRule="auto"/>
+  </w:pPr>
+  <w:r><w:rPr><w:i/></w:rPr><w:t>Subsection label</w:t></w:r>
 </w:p>
 ```
 
@@ -189,6 +254,10 @@ Bold topic text. Main heading for the row.
 
 **HARD RULE: Company or team names only. Never individual person names.**
 
+Col 3 holds one paragraph per col-2 paragraph in the same row, so each Action
+lands on the line of the sub-item it belongs to. Paragraphs facing the section
+title, a subsection label, or a sub-item with no owner are empty.
+
 ```xml
 <w:tc>
   <w:tcPr>
@@ -212,7 +281,7 @@ Bold topic text. Main heading for the row.
 
 ## Col 4 — Status
 
-Same structure as Col 3. Permitted values: `In Progress` / `Pending` / `Completed`. No other values.
+Same structure as Col 3. Permitted values: `In Progress` / `Pending` / `No Action`. No other values.
 
 ---
 

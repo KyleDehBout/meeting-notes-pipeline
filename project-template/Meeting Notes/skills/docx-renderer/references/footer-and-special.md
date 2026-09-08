@@ -102,4 +102,4 @@ Raw `&` in `<w:t>` content will corrupt the XML. Always escape.
 | Modifying header/footer files | Never — leave all `header*.xml`, `footer*.xml`, `word/media/` untouched |
 | Using npm `docx` library | Never — template clone + XML edit only |
 | Person names in Action column | Never — companies/teams only |
-| Status values outside the permitted set | Never — `In Progress`, `Pending`, `Completed` only |
+| Status values outside the permitted set | Never — `In Progress`, `Pending`, `No Action` only |

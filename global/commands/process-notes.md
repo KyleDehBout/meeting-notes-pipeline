@@ -17,6 +17,7 @@ Check the following in order.
 - CLAUDE.md roster contains a `[Name]` placeholder → "Roster has placeholder entries — attribution validation will be unreliable."
 - The formatter skill file (listed in CLAUDE.md) contains `[TO BE FILLED IN]` → "Formatter skill file has unfilled sections — output quality may be low."
 - The style rules skill file (listed in CLAUDE.md) contains `[TO BE FILLED IN]` → "Style rules skill file has unfilled sections — output quality may be low."
+- The humanizer skill file (listed in CLAUDE.md) is missing, or its `references/` folder is empty → "Humanizer skill not found — Stage 2 will run the editorial pass only."
 
 If any warnings exist, print all of them, then ask:
 "Proceed anyway? (y/n)"
@@ -26,6 +27,10 @@ If no warnings: proceed to Stage 1 silently.
 ---
 
 ## Pipeline — 5 stages in strict order, no skipping
+
+Agents return pipeline metadata lines after the draft: EDITORIAL NOTE, HUMANIZER NOTE,
+DISCIPLINE NOTE, SUPERVISOR NOTE. Collect each one for the summary report, then strip it
+before passing the draft to the next stage. No NOTE line ever reaches the docx-renderer.
 
 ### Stage 1 — formatter
 Find the most recent file in the transcripts folder listed in CLAUDE.md.
@@ -43,9 +48,18 @@ Receive complete first draft.
 ### Stage 2 — editorial-qa
 Files to pass to the editorial-qa agent:
 - Stage 1 draft
+- CLAUDE.md
 - The style rules skill file listed in CLAUDE.md
+- The style rules typography reference (at the same path as the style rules skill)
+- The hard rules skill file listed in CLAUDE.md
+- The hard rules terminology reference (at the same path as the hard rules skill)
+- The humanizer skill file listed in CLAUDE.md
+- The humanizer references/ subfolder (at the same path as the humanizer skill)
 
-Receive sharpened draft plus EDITORIAL NOTE.
+The agent runs two passes: editorial sharpening, then AI-writing cleanup scoped by the
+humanizer skill file. Stages 3 and 4 re-validate its output, so it runs here and nowhere else.
+
+Receive sharpened draft plus EDITORIAL NOTE and HUMANIZER NOTE.
 
 ### Stage 3 — discipline-checker
 Files to pass to the discipline-checker agent:
@@ -78,6 +92,7 @@ Receive completion status and output file path.
 ## Summary report — print after Stage 5 completes
 - Which transcript was processed and its date
 - EDITORIAL NOTE from Stage 2
+- HUMANIZER NOTE from Stage 2
 - DISCIPLINE NOTE from Stage 3
 - SUPERVISOR NOTE from Stage 4 (if recurring corrections not yet at threshold)
 - Output file path from Stage 5

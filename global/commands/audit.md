@@ -27,6 +27,10 @@ Note which of the following files have real content beyond template placeholders
 - skills/hard-rules/references/terminology.md
 - The supervisor style guide listed in CLAUDE.md
 
+Also read `metadata.upstream` from the humanizer skill file listed in CLAUDE.md and report
+the vendored version. The humanizer skill is static — /learn never writes to it, so it has
+no approved or rejected entries. Report the version only.
+
 ## Output
 Print exactly this structure:
 
@@ -64,6 +68,9 @@ SKILL FILES WITH CONTENT
   [✓ has content] — filename
   [⬜ still template defaults] — filename
   (one line per file)
+
+HUMANIZER
+  Vendored upstream: [metadata.upstream value, or "not installed"]
 ---
 
 Do not ask follow-up questions. Print the report and stop.

@@ -2,7 +2,14 @@
 
 ## Date format
 <!--
-Define the exact date format used in your meeting notes. Example:
+Define the exact date format used in your meeting notes.
+
+Whatever you choose here MUST match skills/docx-renderer/references/title-and-attendees.md.
+Those two files are read by different agents; when they disagree the output flips
+format depending on which agent read last. State the rule once here and have the
+renderer reference point at it.
+
+Example:
 - Full format: Thursday April 9, 2026
 - No superscript ordinal (not "9th")
 - No comma after day name (not "Thursday, April 9")

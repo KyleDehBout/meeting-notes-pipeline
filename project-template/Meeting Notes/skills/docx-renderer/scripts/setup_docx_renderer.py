@@ -30,6 +30,10 @@ from pathlib import Path
 
 W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
+# Neutral fallback for the "Prepared by" brand colour. Overwritten by extraction
+# from the uploaded branded template; a real brand hex must never be the default.
+FALLBACK_ORG_COLOR = '000000'
+
 
 # ── XML helpers ───────────────────────────────────────────────────────────────
 
@@ -360,9 +364,14 @@ def extract_values(src_path):
     v['footer_lang']           = 'en-GB'
     v['footer_font']           = 'Times New Roman'
     v['footer_spacing_before'] = '240'
+    # Fallbacks only. The loop below overwrites all three from the uploaded
+    # branded template's "Prepared by" paragraph. Never put a real client's brand
+    # colour here — if extraction fails, a neutral value must surface the problem
+    # rather than quietly stamping another client's navy on the document.
     v['org_name']              = 'IBEC'
     v['org_suffix']            = ' Limited'
-    v['org_color']             = '243E6C'
+    v['org_color']             = FALLBACK_ORG_COLOR
+    v['org_color_extracted']   = False
 
     for p in post_table:
         runs = p.findall(wn('r'))
@@ -387,11 +396,16 @@ def extract_values(src_path):
                 v['footer_lang']    = rv.get('lang') or 'en-GB'
             if rv.get('bold') and rv.get('color') and rv['color'].lower() not in ('auto','000000','ffffff'):
                 v['org_color'] = rv['color']
+                v['org_color_extracted'] = True
                 if text:
                     v['org_name'] = text
             elif not rv.get('bold') and text and 'Prepared' not in text and text != v['org_name']:
                 v['org_suffix'] = text_raw  # preserve leading space, e.g. " Limited"
         log.append(f"✓ Footer: org={v['org_name']}{v['org_suffix']}, color=#{v['org_color']}, sz={v['footer_sz']}")
+        if not v.get('org_color_extracted'):
+            log.append("⚠ Footer brand colour was NOT extracted from the template — "
+                       f"falling back to #{FALLBACK_ORG_COLOR}. Check the source .docx has a "
+                       "\"Prepared by\" paragraph, or set the colour by hand.")
         break
 
     v['_log'] = log
@@ -784,7 +798,7 @@ Indent: left {v['l3_left']}, hanging {v['l3_hanging']}.
 
 ## Col 4 — Status
 
-Same structure as Col 3. Permitted values: `In Progress` / `Pending` / `Completed`. No other values.
+Same structure as Col 3. Permitted values: `In Progress` / `Pending` / `No Action`. No other values.
 
 ---
 
@@ -837,7 +851,7 @@ def gen_footer_and_special(v):
     f_before = v.get('footer_spacing_before', '240')
     org      = v.get('org_name', 'IBEC')
     suffix   = v.get('org_suffix', ' Limited')
-    color    = v.get('org_color', '243E6C')
+    color    = v.get('org_color', FALLBACK_ORG_COLOR)
 
     return f"""# Footer and Special Formatting Reference
 
@@ -944,7 +958,7 @@ Raw `&` in `<w:t>` content will corrupt the XML. Always escape.
 | Modifying header/footer files | Never — leave all `header*.xml`, `footer*.xml`, `word/media/` untouched |
 | Using npm `docx` library | Never — template clone + XML edit only |
 | Person names in Action column | Never — companies/teams only |
-| Status values outside the permitted set | Never — `In Progress`, `Pending`, `Completed` only |
+| Status values outside the permitted set | Never — `In Progress`, `Pending`, `No Action` only |
 """
 
 

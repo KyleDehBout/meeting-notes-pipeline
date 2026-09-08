@@ -2,3 +2,11 @@
 *.DS_Store
 **/.DS_Store
 qa-session.html
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Local scratch / pre-sync backups — not part of the pipeline
+.backup-presync/
+Temp brain storming files/

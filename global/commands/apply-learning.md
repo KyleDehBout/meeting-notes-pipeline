@@ -83,7 +83,20 @@ Move intake file to the issued archive as: [Project Name] - Meeting Notes #[N].[
 Clear the intake folder.
 Delete qa-session.html from the project root if it exists.
 
-## Step 7 — Print summary and stop
+## Step 7 — Clean up pipeline folders
+Only run this step if Step 6 completed and the issued file is now confirmed present in
+the issued archive folder. If the archive move did not succeed, skip this step entirely
+(never clear source material when nothing was safely archived).
+
+Once the archive is confirmed:
+- Clear the transcripts folder listed in CLAUDE.md (delete its transcript files; leave the
+  folder itself in place).
+- Clear the output folder listed in CLAUDE.md (delete the pipeline draft/render files,
+  including any orphaned `~$` Word lock files; leave the folder itself in place).
+
+This leaves each cycle's only surviving copy as the numbered file in the issued archive.
+
+## Step 8 — Print summary and stop
 Print this and nothing else:
 
 ---
@@ -98,6 +111,9 @@ Files updated:
 
 Archived to:
 [Project Name] - Meeting Notes #[N].[ext]
+
+Cleaned up:
+transcripts/ and output/ cleared
 ---
 
 Do not ask follow-up questions. Do not offer next steps.

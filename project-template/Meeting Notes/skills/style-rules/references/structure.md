@@ -35,5 +35,9 @@ Define rules for sub-items within sections. Example:
 ## Closing rows
 <!--
 Define any standard closing rows (next meeting date, prepared by, etc.)
+
+Transcribe the label wording from a real issued document rather than inventing it,
+and note whether the closing row carries a col 1 counter paragraph — it usually
+should not, or it renders an orphan section number.
 -->
 [TO BE FILLED IN]

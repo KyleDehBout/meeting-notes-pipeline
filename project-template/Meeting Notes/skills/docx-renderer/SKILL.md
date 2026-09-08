@@ -83,7 +83,9 @@ Document structure (top to bottom):
 [Empty paragraph]
 [Main table]
   [Header row]
-  [Content rows — one per agenda item]
+  [Content rows — ONE PER SECTION: each row holds that section's title,
+   its subsection labels and all its sub-items as paragraphs in col 2.
+   Never one row per sub-item — see references/table-structure.md]
   [Meetings row — final row, next meeting date]
 [Footer paragraph — "Prepared by: [Organisation] Limited"]
 [sectPr — copy exactly from template, do not recalculate]
@@ -102,6 +104,13 @@ Replace only the content between `<w:body>` and `</w:body>`. Do not alter the ro
 - Add `xml:space="preserve"` to any `<w:t>` with leading or trailing spaces
 - Do not define new numbering — `numbering.xml` already contains the list styles; reference them as-is
 - Copy the `<w:sectPr>` block verbatim from the unpacked template XML
+- **Never type a section/sub-item number into `<w:t>` text.** Numbering is rendered by
+  Word from `numPr` (`ilvl` + a live `numId`) — writing "1.", "1.1" or "1.1.1" as literal
+  characters means the `numPr` wiring is wrong. Fix the wiring, not the text.
+- **`numId="0"` at `ilvl="0"` on a section title is correct and deliberate.** It suppresses
+  that paragraph's own number so the col 1 counter supplies it. It is the one place
+  `numId="0"` belongs; omitting `<w:numPr>` altogether there is the bug. See
+  [references/table-structure.md](references/table-structure.md) for the exact pattern.
 
 ---
 
@@ -122,7 +131,23 @@ python "[DOCX renderer scripts]/validate.py" \
   "[DOCX working dir]/meeting-notes-final.docx"
 ```
 
-**If validation fails:**
+**If validation fails, attempt the automatic repair before touching the XML yourself.**
+`repair.py` fixes the known renderer failure modes mechanically — typed-in section
+numbers, chat-UI styles pasted into the document, and numbering that was never linked
+to a live list. It repairs nothing it cannot fix safely, backs the file up to
+`.pre-repair.docx`, and appends every run to the render log.
+
+```bash
+python "[DOCX renderer scripts]/repair.py" \
+  "[DOCX working dir]/meeting-notes-final.docx" \
+  --log "[DOCX working dir]/render-log.tsv"
+python "[DOCX renderer scripts]/validate.py" \
+  "[DOCX working dir]/meeting-notes-final.docx"
+```
+
+Report the repair output as one line. If validation now passes, continue to Step 7.
+
+**If validation still fails after the repair:**
 1. Read the error message carefully
 2. Return to Step 4 and fix the XML (via Python script — do not print XML in response)
 3. Repack (Step 5)
@@ -154,7 +179,7 @@ Return: `RENDER COMPLETE: [output path]`
 | **Clean working dir on start** | Always rm -rf the working dir before Step 1, even on a restart. |
 | No npm `docx` library | Template-clone + XML edit only |
 | Action column | Company/team names only — never individual person names |
-| Status values | `In Progress`, `Pending`, `Completed` — no other values permitted |
+| Status values | `In Progress`, `Pending`, `No Action` — no other values permitted |
 | `numbering.xml` | Copy unchanged from template — never redefine list styles |
 | Validation | Must pass before saving output |
 | Content | Do not alter content — rendering only |

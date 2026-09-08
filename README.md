@@ -62,7 +62,9 @@ meeting-notes-pipeline/
     ├── meeting-notes-formatter-skill-[PROJECT].md
     ├── skills/
     │   ├── style-rules/
-    │   └── hard-rules/
+    │   ├── hard-rules/
+    │   ├── humanizer/      ← vendored blader/humanizer + project scoping layer
+    │   └── docx-renderer/
     └── transcripts/ output/ intake/ Meeting Notes/
 ```
 
@@ -78,6 +80,8 @@ The installer scaffolds your project folder with placeholder content. Before run
 
 3. **`skills/hard-rules/`** — non-negotiable rules: attribution, data isolation, output format. Add project-specific technical terminology to `references/terminology.md`.
 
+   `skills/humanizer/` needs no setup. It ships complete and is project-independent.
+
 4. **`supervisor-style-guide-[PROJECT].md`** — leave blank to start. It fills in automatically as you run `/learn` cycles. You can seed it manually with known preferences.
 
 The pipeline's `supervisor-alignment` agent passes the draft through unchanged until 5 corrections are logged in the style guide — so there's no pressure to pre-fill it.
@@ -89,9 +93,44 @@ The pipeline's `supervisor-alignment` agent passes the draft through unchanged u
 | Stage | Agent | Job |
 |---|---|---|
 | 1 | `formatter` | Raw transcript → structured first draft |
-| 2 | `editorial-qa` | Sharpen draft — remove filler, tighten wording, reorder by priority |
+| 2 | `editorial-qa` | Sharpen draft — remove filler, tighten wording, reorder by priority, then strip AI-writing tells |
 | 3 | `discipline-checker` | Validate every Action column attribution against the project roster |
 | 4 | `supervisor-alignment` | Apply documented supervisor preferences |
+| 5 | `docx-renderer` | Render the final markdown to a formatted .docx |
+
+---
+
+## Humanizer
+
+Stage 2 runs a second pass over the sharpened draft that removes signs of AI-generated
+writing — inflated significance, promotional wording, `-ing` padding, AI vocabulary,
+copula avoidance, filler, and chatbot artifacts.
+
+It is vendored, not installed as a dependency. The upstream pattern list from
+[blader/humanizer](https://github.com/blader/humanizer) (MIT) sits verbatim in
+`skills/humanizer/references/`, and `skills/humanizer/SKILL.md` is the project-owned layer
+that decides how it behaves in formal minutes:
+
+- **Personality and voice-matching are off.** Minutes are reference documents. Flat and
+  neutral is the target, not a defect to fix.
+- **7 patterns are suppressed** because they fight the document format — boldface, inline-header
+  lists, heading case, curly quotes, hyphenation, fragmented headers, and diff-anchored
+  writing all belong to `typography.md` and `structure.md`.
+- **6 patterns are constrained.** The em dash rule stops at prose and never touches date,
+  time, or reference-number ranges. The passive-voice rule can never re-introduce a person
+  as the actor, because the speaker-attribution hard rule outranks it. Rule-of-three never
+  deletes a real item to break up a group of three.
+- **Hard rules always win.** Where upstream says "name a real source", the pipeline cuts the
+  claim or marks it `[not provided]`. Nothing enters the draft that is not in the transcript.
+
+It runs at Stage 2 and nowhere else, so `discipline-checker` re-validates every attribution
+afterwards and `supervisor-alignment` gets the last word on style. Both act as guardrails on
+anything the rewrite breaks.
+
+To update the vendored copy, drop the newer upstream `SKILL.md` into
+`skills/humanizer/references/` with its version in the filename, reconcile any new pattern
+numbers against the tables in `skills/humanizer/SKILL.md`, then bump `metadata.upstream`.
+`/audit` reports the vendored version.
 
 ---
 
