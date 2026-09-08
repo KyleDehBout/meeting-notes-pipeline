@@ -28,7 +28,6 @@ GOLDEN = [
     'One Ironshore - Site Meeting Notes #13.docx',
     'One Ironshore - Site Meeting Notes #14.docx',
 ]
-BAD_OUTPUT = 'OIS-Meeting-Notes-2026-09-03.docx'
 
 failures = []
 
@@ -55,13 +54,37 @@ def test_accepts_issued_documents():
         check('accepts %s' % fname, code == 0, out)
 
 
-def test_rejects_row_per_item_output():
-    """The 2026-09-03 output puts every sub-item on its own numbered row,
-    so its section counter fires 25 times with no section heading behind it."""
-    path = os.path.join(OUTPUT, BAD_OUTPUT)
-    code, out = run(path)
-    check('rejects %s' % BAD_OUTPUT, code != 0,
-          'expected non-zero exit, got 0')
+SUPPRESSION = b'<w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr>'
+
+
+def _derive(mutate, name):
+    """Build a broken .docx from a golden one by rewriting its document.xml."""
+    src = os.path.join(ARCHIVE, GOLDEN[-1])
+    tmp = tempfile.mkdtemp()
+    dst = os.path.join(tmp, name)
+    with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, 'w') as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == 'word/document.xml':
+                data = mutate(data)
+            zout.writestr(item, data)
+    return tmp, dst
+
+
+def test_rejects_section_titles_without_numbering():
+    """The 2026-09-03 render dropped <w:numPr> from every section title, so each
+    row advanced the section counter with no title behind it: titles lost their
+    number and sub-items rendered as "3.0.1".
+
+    Derived from a golden document rather than from output/, because output/ is
+    regenerated on every pipeline run and cannot be a stable fixture."""
+    tmp, dst = _derive(lambda d: d.replace(SUPPRESSION, b''), 'no-title-numpr.docx')
+    try:
+        code, out = run(dst)
+        check('rejects section titles with no numPr', code != 0,
+              'expected non-zero exit, got 0')
+    finally:
+        shutil.rmtree(tmp)
 
 
 def test_rejects_literal_typed_numbering():
@@ -88,7 +111,7 @@ if __name__ == '__main__':
     print('validator: %s' % os.path.normpath(VALIDATE))
     print('fixtures : %s\n' % NOTES)
     test_accepts_issued_documents()
-    test_rejects_row_per_item_output()
+    test_rejects_section_titles_without_numbering()
     test_rejects_literal_typed_numbering()
     print('\n%d failure(s)' % len(failures))
     sys.exit(1 if failures else 0)
