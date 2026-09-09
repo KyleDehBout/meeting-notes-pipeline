@@ -5,6 +5,10 @@ Installs the global pipeline components into your Claude Code configuration and 
 a new project folder ready to use. If you provide past meeting notes, the setup extracts
 your style, roster, and organisation names automatically.
 
+Project details are collected in a browser form, not in the terminal. On a fresh clone the
+form opens by itself; the user fills it in, copies the generated block, and pastes it back
+into Claude Code. See Step 1.
+
 ---
 
 ## Step 0 — Upload documents
@@ -75,44 +79,129 @@ are used to auto-populate files. LOW items are flagged for the user to confirm.
 Save all extracted data as EXTRACTED_DATA for use in Steps 1–4.
 
 ### If the user says "skip" for past notes:
-Set EXTRACTED_DATA to empty. Proceed to Step 1 with manual questions only.
+Set EXTRACTED_DATA to empty. Proceed to Step 1 and open the setup form with no prefill.
 
 ---
 
-## Step 1 — Collect project information
+## Step 1 — Collect project information via the setup form
 
-Ask the following questions. For any item where EXTRACTED_DATA contains a HIGH or MEDIUM
-confidence answer, show the extracted value and ask the user to confirm or correct it
-rather than asking from scratch.
+**Hardcoded rule: project information is always collected in the browser form, never by
+asking the questions one at a time in the terminal.**
 
-1. "What is your project name or code? Use a short identifier — this becomes the suffix
-   on your project files. (e.g. SFV, BRIDGE-02, RETAIL-Q4)"
-   Save as PROJECT_NAME.
+On a fresh clone the SessionStart hook (`scripts/first_run_check.py`, wired in
+`.claude/settings.json`) has already generated and opened the form before this command
+runs. In that case skip straight to Step 1c and wait for the paste.
 
-2. "Where is your project folder? Provide the full path to the root project folder —
-   not the Meeting Notes subfolder, just the project root."
-   Save as PROJECT_PATH.
+If the form is not already open — the user ran `/setup-pipeline` by hand, or setup has run
+on this machine before — generate and open it now.
 
-3. "Does your project already have a Meeting Notes folder? If yes, tell me its name
-   (e.g. 'Meeting Notes', 'Site Minutes', 'Minutes'). If not, I'll create one called
-   'Meeting Notes' — just say 'create' or press enter to accept the default."
-   - If user provides a name: save as MEETING_NOTES_FOLDER and verify the folder exists at PROJECT_PATH/MEETING_NOTES_FOLDER
-   - If user says "create" or accepts default: set MEETING_NOTES_FOLDER = "Meeting Notes" and create it
-   Save as MEETING_NOTES_FOLDER.
+### Step 1a — Build the prefill object
 
-4. **Roster question** — handle based on EXTRACTED_DATA:
-   - If roster was extracted with HIGH/MEDIUM confidence: present the extracted roster as a
-     formatted table and ask "Does this look right? Add, remove, or correct any rows, then confirm."
-   - If not extracted or LOW confidence: ask "List your team members. For each person enter:
-     Name, Organisation, Title — one per line. Type DONE on its own line when finished."
-   Save final list as ROSTER.
+If EXTRACTED_DATA is empty, the prefill is `{}` — skip to Step 1b.
 
-5. **Organisation names question** — handle based on EXTRACTED_DATA:
-   - If org names were extracted with HIGH/MEDIUM confidence: present the extracted list and
-     ask "Are these the organisation names that should appear in the Action column? Confirm or edit."
-   - If not extracted or LOW confidence: ask "List all organisation names that will appear
-     in the Action column, comma-separated. These must be exact — they are used for attribution validation."
-   Save final list as ORG_NAMES.
+Otherwise build a JSON object from the HIGH and MEDIUM confidence items only. LOW
+confidence items are left blank so the user fills them in deliberately. Use this exact
+shape; every key is optional:
+
+```json
+{
+  "project": "SFV",
+  "path": "/Users/you/Projects/SFV",
+  "folderName": "Site Minutes",
+  "templateSource": "/Users/you/Documents/past-minutes.docx",
+  "roster": [{"name": "Jane Smith", "org": "Acme Corp", "title": "Structural Engineer"}],
+  "orgs": "Acme Corp, BuildCo, City Council",
+  "actionColumn": "ORG_ONLY",
+  "dateFormat": "Monday 22 June 2026",
+  "numbering": "DECIMAL",
+  "tone": "FORMAL_THIRD",
+  "attribution": "NEVER",
+  "statusValues": "In Progress, Pending, No Action",
+  "terms": "precast panels, ROW, BQ",
+  "threshold": "3",
+  "sourceNote": "Prefilled from past-minutes.docx — check each field before submitting."
+}
+```
+
+Dropdown values must match the option values in `assets/setup-form.html` exactly, or the
+dropdown silently keeps its default:
+
+- `actionColumn`: ORG_ONLY | INDIVIDUAL | INITIALS | MIXED
+- `numbering`: DECIMAL | ALPHA | MIXED | NONE
+- `tone`: FORMAL_THIRD | FORMAL_FIRST | NEUTRAL | INFORMAL
+- `attribution`: NEVER | DECISIONS | ALWAYS
+- `threshold`: 3 | 5 | 10
+- `dateFormat`: one of the six literal strings listed in the form
+
+Write the JSON to a temporary file rather than passing it inline — rosters and
+organisation lists contain quotes and commas that break shell escaping.
+
+### Step 1b — Generate and open the form
+
+```bash
+python3 "[repo-root]/scripts/generate_setup_form.py" \
+  --out "[repo-root]" \
+  --prefill "[path to prefill.json]"
+```
+
+Omit `--prefill` entirely when EXTRACTED_DATA is empty. The script writes
+`setup-session.html` and opens it in the default browser. The file is self-contained — no
+network, no CDN, works offline — and is gitignored.
+
+If the script prints `not opened`, print the file path and ask the user to open it manually.
+
+### Step 1c — Wait for the pasted block
+
+Print exactly this and nothing else:
+
+---
+Setup form open in your browser.
+
+Fill it in, click "Generate setup block", then either "Copy to clipboard" or
+"Copy & close", and paste the result back here.
+---
+
+Then stop. Do not ask setup questions in the terminal. Do not proceed until the user
+pastes. If the user answers in prose instead of pasting, accept the prose — do not send
+them back to the form.
+
+### Step 1d — Parse the pasted block
+
+The paste is delimited by `==PROJECT_SETUP==` and `==END_SETUP==`. Read these values:
+
+| Key in block | Variable | Notes |
+|---|---|---|
+| PROJECT_NAME | PROJECT_NAME | required |
+| PROJECT_PATH | PROJECT_PATH | required — project root, not the Meeting Notes subfolder |
+| MEETING_NOTES_FOLDER | MEETING_NOTES_FOLDER | |
+| FOLDER_MODE | FOLDER_MODE | CREATE or EXISTING |
+| EXISTING_DOCS | EXISTING_DOCS | ARCHIVE or LEAVE |
+| TEMPLATE_SOURCE | TEMPLATE_SOURCE | `none` means empty |
+| `--- ROSTER ---` rows | ROSTER | one `\| Name \| Organisation \| Title \|` row per person |
+| ORG_NAMES | ORG_NAMES | |
+| ACTION_COLUMN | ACTION_COLUMN | |
+| DATE_FORMAT | DATE_FORMAT | |
+| NUMBERING | NUMBERING | |
+| TONE | TONE | |
+| SPEAKER_ATTRIBUTION | SPEAKER_ATTRIBUTION | |
+| STATUS_VALUES | STATUS_VALUES | |
+| TERMINOLOGY | TERMINOLOGY | `none` means empty |
+| SUPERVISOR_THRESHOLD | SUPERVISOR_THRESHOLD | |
+| CREATE_LAUNCHER | CREATE_LAUNCHER | YES or NO |
+| NOTES | NOTES | `none` means empty |
+
+Then run these checks before continuing:
+
+- PROJECT_PATH exists. If not, ask whether to create it.
+- If FOLDER_MODE is EXISTING, PROJECT_PATH/MEETING_NOTES_FOLDER exists. If not, say so and
+  create it.
+- If TEMPLATE_SOURCE is set, the file exists and ends in `.docx`.
+
+Ask about a failed check only. Everything that parsed cleanly is settled — do not read it
+back to the user field by field for confirmation.
+
+A value the user typed into the form always beats a value extracted from the uploaded
+document. The form is the last word.
 
 ---
 
@@ -154,6 +243,7 @@ Create the following inside PROJECT_PATH/MEETING_NOTES_FOLDER/:
 - working/
 - skills/style-rules/references/
 - skills/hard-rules/references/
+- skills/humanizer/references/
 - skills/docx-renderer/references/
 - skills/docx-renderer/scripts/
 
@@ -190,6 +280,9 @@ need to run setup_docx_renderer.py manually before using /process-notes.
 Copy [repo-root]/project-template/CLAUDE.md to PROJECT_PATH/CLAUDE.md.
 
 ### Create Claude launcher
+
+Skip this whole section if CREATE_LAUNCHER is NO.
+
 Create a file at PROJECT_PATH named exactly:
   Claude — PROJECT_NAME Meeting Notes Launcher.command
 
@@ -215,6 +308,10 @@ Open the newly created CLAUDE.md at PROJECT_PATH and make the following replacem
 - Every occurrence of [PROJECT] in file location values → PROJECT_NAME
 - Placeholder roster rows → one table row per ROSTER entry: | Name | Organisation | Title |
 - [Org1, Org2, Org3...] → ORG_NAMES (comma-separated, exactly as confirmed)
+- `Supervisor activation threshold: 3` → SUPERVISOR_THRESHOLD
+
+If NOTES is not empty, append a `## Project notes` section at the end of CLAUDE.md
+containing that text verbatim.
 
 ### DOCX renderer entries in CLAUDE.md
 
@@ -223,6 +320,7 @@ In addition to the standard replacements, fill in the four DOCX renderer keys:
 - `DOCX renderer scripts` → `MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/`
 - `DOCX working dir` → `MEETING_NOTES_FOLDER/working/`
 - `DOCX renderer skill` → `MEETING_NOTES_FOLDER/skills/docx-renderer/SKILL.md`
+- `Humanizer skill` → `MEETING_NOTES_FOLDER/skills/humanizer/SKILL.md`
 
 ### Formatter skill file
 Open meeting-notes-formatter-skill-PROJECT_NAME.md.
@@ -235,16 +333,67 @@ For each section of the Established Style Profile:
 - If EXTRACTED_DATA is empty or LOW confidence: leave [TO BE FILLED IN] but replace the
   comment block with a targeted prompt noting what to fill in.
 
+### Apply the form's style answers
+
+The form answers are explicit user choices, so they outrank anything inferred from the
+uploaded document. Write each one into the formatter skill file as a stated rule:
+
+- DATE_FORMAT → the header date convention, written out as the literal example
+- NUMBERING → the section numbering scheme (DECIMAL `1. / 1.1 / 1.1.1`, ALPHA `A. / A.1`,
+  MIXED `1) / a) / i)`, NONE for headings only)
+- TONE → register (FORMAL_THIRD, FORMAL_FIRST, NEUTRAL, INFORMAL)
+- SPEAKER_ATTRIBUTION → NEVER, DECISIONS, or ALWAYS
+- ACTION_COLUMN → what goes in the Action column (ORG_ONLY, INDIVIDUAL, INITIALS, MIXED)
+- STATUS_VALUES → the permitted status values, verbatim
+
+Where a form answer and EXTRACTED_DATA disagree, the form wins and no question is asked.
+
+If ACTION_COLUMN is anything other than ORG_ONLY, note in the hard rules skill that the
+default org-only attribution rule has been overridden for this project, so
+`discipline-checker` validates against the chosen convention instead.
+
 ### Style rules and hard rules skill files
 Apply the same logic — populate where EXTRACTED_DATA is HIGH/MEDIUM, leave targeted
 prompts elsewhere.
 
-The hard rules terminology reference: if technical terms were extracted from uploaded
-notes, add them under the appropriate category.
+The hard rules terminology reference: add every term from TERMINOLOGY, plus any technical
+terms extracted from uploaded notes, under the appropriate category.
+
+### Humanizer skill file
+Do not populate this one. It ships complete and is project-independent — copy
+`skills/humanizer/` across as-is, including `references/`. It has no `[TO BE FILLED IN]`
+sections and takes no extracted data.
 
 ---
 
-## Step 5 — Print confirmation
+## Step 5 — Mark setup complete
+
+Write the marker that tells the first-run hook not to reopen the form. Without this the
+setup form pops up again on the next session.
+
+Write to `[repo-root]/.claude/.setup-state.json`:
+
+```json
+{
+  "setupComplete": true,
+  "completedAt": "[ISO 8601 timestamp]",
+  "project": "[PROJECT_NAME]",
+  "projectPath": "[PROJECT_PATH]"
+}
+```
+
+Then delete the generated form so it does not sit stale in the repo root:
+
+```bash
+rm -f "[repo-root]/setup-session.html"
+```
+
+Both paths are gitignored. To set up a second project later, the user runs
+`/setup-pipeline` by hand — the hook only ever fires on a fresh clone.
+
+---
+
+## Step 6 — Print confirmation
 
 Print exactly this (substituting real values):
 
@@ -266,8 +415,9 @@ Meeting Notes folder:
   ├── intake/            ← drop supervisor-approved files here
   ├── Archive/           ← issued notes archive
   ├── working/           ← docx renderer scratch space (not for manual editing)
-  └── skills/            ← your style, hard rules, and docx renderer
+  └── skills/            ← your style, hard rules, humanizer, and docx renderer
 
+[If CREATE_LAUNCHER is YES:]
 Launcher created:
   PROJECT_PATH/Claude — PROJECT_NAME Meeting Notes Launcher.command
   └── Double-click this in Finder to open Claude Code in the right folder
@@ -280,6 +430,14 @@ DOCX blank template created:
 [If BLANK_TEMPLATE_PATH is empty:]
 ⚠ DOCX blank template not created — create it before running /process-notes:
   python MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/create_blank_template.py <source.docx> MEETING_NOTES_FOLDER/PROJECT_NAME_blank_template.docx
+
+Settings applied from the setup form:
+  Date format          DATE_FORMAT
+  Section numbering    NUMBERING
+  Tone                 TONE
+  Speaker attribution  SPEAKER_ATTRIBUTION
+  Action column        ACTION_COLUMN
+  Supervisor threshold SUPERVISOR_THRESHOLD
 
 [If past notes were uploaded, include this block:]
 Auto-populated from your uploaded notes:

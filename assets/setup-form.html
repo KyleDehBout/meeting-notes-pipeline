@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Notes — Project Setup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#1a1a1a;padding:32px 16px}
+.page{max-width:720px;margin:0 auto}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:16px;overflow:hidden}
+.card-header{background:#f9f9f9;border-bottom:1px solid #e0e0e0;padding:14px 28px}
+.card-header h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#555}
+.card-header p{font-size:12px;color:#888;margin-top:2px}
+.top-card{padding:20px 28px}
+.top-card h1{font-size:18px;font-weight:600;margin-bottom:3px}
+.top-card p{font-size:13px;color:#666}
+.item{padding:18px 28px;border-bottom:1px solid #f0f0f0}
+.item:last-child{border-bottom:none}
+.qtext{font-size:14px;font-weight:500;margin-bottom:5px;line-height:1.5}
+.qhint{font-size:12px;color:#888;margin-bottom:9px;line-height:1.45}
+.req{color:#b91c1c;font-weight:600}
+.prefilled{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:#ecfdf5;color:#065f46;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
+textarea,input[type=text],select{width:100%;border:1px solid #e0e0e0;border-radius:6px;padding:9px 12px;font-size:13px;font-family:inherit;color:#1a1a1a;background:#fff}
+textarea{resize:vertical;min-height:64px;line-height:1.5}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2012%2012'%3E%3Cpath%20fill%3D'%23888'%20d%3D'M2%204.5L6%208.5L10%204.5'%2F%3E%3C%2Fsvg%3E");background-repeat:no-repeat;background-position:right 11px center;background-size:12px;padding-right:32px}
+textarea:focus,input[type=text]:focus,select:focus{outline:none;border-color:#1a56db}
+textarea::placeholder,input::placeholder{color:#bbb}
+.err{border-color:#b91c1c!important;background:#fef2f2}
+.errmsg{display:none;font-size:12px;color:#b91c1c;margin-top:5px;font-weight:500}
+.roster-row{display:grid;grid-template-columns:1fr 1fr 1fr 32px;gap:8px;margin-bottom:8px;align-items:center}
+.roster-head{display:grid;grid-template-columns:1fr 1fr 1fr 32px;gap:8px;margin-bottom:6px}
+.roster-head span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#999}
+.btn-x{background:none;border:1px solid #e0e0e0;border-radius:6px;color:#b91c1c;font-size:16px;line-height:1;cursor:pointer;height:34px;width:32px}
+.btn-x:hover{background:#fef2f2;border-color:#fca5a5}
+.btn-add{background:#f5f5f5;border:1px solid #e0e0e0;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;color:#1a1a1a;margin-top:4px}
+.btn-add:hover{background:#ececec}
+.submit-bar{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.submit-hint{font-size:13px;color:#888}
+.btn-submit{background:#1a1a1a;color:#fff;border:none;border-radius:6px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-submit:hover{background:#333}
+.summary-card{display:none;background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:16px}
+.summary-header{background:#f0fdf4;border-bottom:1px solid #d1fae5;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.summary-header h2{font-size:14px;font-weight:600;color:#15803d}
+.btn-group{display:flex;gap:8px}
+.btn-copy{background:#15803d;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-copy:hover{background:#166534}
+.btn-copy-close{background:#fff;color:#15803d;border:1px solid #15803d;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-copy-close:hover{background:#f0fdf4}
+.summary-body{padding:20px 28px}
+#summary-out{width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.6;border:1px solid #e0e0e0;border-radius:6px;padding:14px;background:#f9f9f9;color:#1a1a1a;min-height:220px;resize:vertical}
+.paste-note{font-size:13px;color:#444;margin-top:10px;padding:10px 14px;background:#f5f5f5;border-radius:6px;line-height:1.5}
+.close-note{display:none;font-size:13px;color:#065f46;margin-top:10px;padding:10px 14px;background:#ecfdf5;border-radius:6px;line-height:1.5;font-weight:500}
+.btn-back{background:none;border:none;color:#888;font-size:13px;cursor:pointer;text-decoration:underline;padding:0;margin-top:12px}
+.btn-back:hover{color:#1a1a1a}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="summary-card" id="sum-card">
+  <div class="summary-header">
+    <h2>Setup complete — paste this into Claude Code</h2>
+    <div class="btn-group">
+      <button class="btn-copy" id="copy-btn" onclick="doCopy()">Copy to clipboard</button>
+      <button class="btn-copy-close" id="copy-close-btn" onclick="doCopyAndClose()">Copy &amp; close</button>
+    </div>
+  </div>
+  <div class="summary-body">
+    <textarea id="summary-out" readonly></textarea>
+    <div class="paste-note">Paste into the Claude Code terminal and press enter. Setup continues automatically — you do not need to run any command.</div>
+    <div class="close-note" id="close-note">Copied. This tab could not close itself — close it manually and paste into Claude Code.</div>
+    <button class="btn-back" onclick="backToForm()">← Back to form</button>
+  </div>
+</div>
+
+<div id="form-wrap">
+
+<div class="card top-card">
+  <h1>Meeting Notes Pipeline — Project setup</h1>
+  <p id="meta-line">Fill this in, submit, then paste the result into Claude Code.</p>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Section 1 — Project</h2><p>Where the project lives and what it is called</p></div>
+
+  <div class="item">
+    <div class="qtext">1. Project name or code <span class="req">*</span><span class="prefilled" id="pf-name" hidden>Prefilled</span></div>
+    <div class="qhint">Short identifier — becomes the suffix on your project files. e.g. SFV, BRIDGE-02, RETAIL-Q4</div>
+    <input type="text" id="p-name" placeholder="e.g. SFV">
+    <div class="errmsg" id="e-p-name">Required — enter a project name or code.</div>
+  </div>
+
+  <div class="item">
+    <div class="qtext">2. Project folder — full path <span class="req">*</span></div>
+    <div class="qhint">The project root, not the Meeting Notes subfolder.</div>
+    <input type="text" id="p-path" placeholder="/Users/you/Projects/My Project">
+    <div class="errmsg" id="e-p-path">Required — enter the full path to the project root.</div>
+  </div>
+
+  <div class="item">
+    <div class="qtext">3. Meeting Notes folder</div>
+    <div class="qhint">If the project already has one, pick "Use existing" and give its name.</div>
+    <select id="p-folder-mode" onchange="syncFolderMode()">
+      <option value="CREATE">Create a new folder called "Meeting Notes"</option>
+      <option value="EXISTING">Use an existing folder</option>
+    </select>
+    <div id="folder-name-wrap" style="margin-top:8px" hidden>
+      <input type="text" id="p-folder-name" placeholder="e.g. Site Minutes">
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="qtext">4. Existing documents already in that folder</div>
+    <div class="qhint">Applies only if loose .docx or .pdf files are found in the folder root.</div>
+    <select id="p-existing-docs">
+      <option value="ARCHIVE">Move them into Archive/</option>
+      <option value="LEAVE">Leave them where they are</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <div class="qtext">5. Branded .docx to use as the document template</div>
+    <div class="qhint">Any past meeting notes or letterhead. Gives every output your header, footer, and logo. Leave blank if you already uploaded one to Claude Code, or if you have none.</div>
+    <input type="text" id="p-template" placeholder="/Users/you/Documents/past-minutes.docx">
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Section 2 — Roster</h2><p>Everyone who appears in the Attendees section</p></div>
+  <div class="item">
+    <div class="qtext">6. Team members <span class="prefilled" id="pf-roster" hidden>Prefilled</span></div>
+    <div class="qhint">Organisation names entered here are reused in Section 3.</div>
+    <div class="roster-head"><span>Name</span><span>Organisation</span><span>Title</span><span></span></div>
+    <div id="roster-wrap"></div>
+    <button class="btn-add" onclick="addRosterRow()">+ Add person</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Section 3 — Attribution</h2><p>Drives the Action column validator</p></div>
+
+  <div class="item">
+    <div class="qtext">7. Organisation names for the Action column <span class="req">*</span><span class="prefilled" id="pf-orgs" hidden>Prefilled</span></div>
+    <div class="qhint">Comma-separated, exact. These are validated on every set of notes. Click below to pull them from the roster.</div>
+    <textarea id="p-orgs" placeholder="Acme Corp, BuildCo, City Council"></textarea>
+    <div class="errmsg" id="e-p-orgs">Required — list at least one organisation.</div>
+    <button class="btn-add" onclick="fillOrgsFromRoster()">Fill from roster</button>
+  </div>
+
+  <div class="item">
+    <div class="qtext">8. Action column convention</div>
+    <div class="qhint">What appears in the Action column of the notes table.</div>
+    <select id="p-action-col">
+      <option value="ORG_ONLY">Organisation name only (recommended)</option>
+      <option value="INDIVIDUAL">Individual person's name</option>
+      <option value="INITIALS">Individual's initials</option>
+      <option value="MIXED">Mixed — organisation, or individual where named</option>
+    </select>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Section 4 — Document style</h2><p>Starting defaults — the pipeline refines these as you run /learn</p></div>
+
+  <div class="item">
+    <div class="qtext">9. Date format in the header</div>
+    <select id="p-date-format">
+      <option value="Monday 22 June 2026">Monday 22 June 2026</option>
+      <option value="Monday June 22, 2026">Monday June 22, 2026</option>
+      <option value="22 June 2026">22 June 2026</option>
+      <option value="22/06/2026">22/06/2026</option>
+      <option value="06/22/2026">06/22/2026</option>
+      <option value="2026-06-22">2026-06-22</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <div class="qtext">10. Section numbering</div>
+    <select id="p-numbering">
+      <option value="DECIMAL">1. / 1.1 / 1.1.1</option>
+      <option value="ALPHA">A. / A.1 / A.1.1</option>
+      <option value="MIXED">1) / a) / i)</option>
+      <option value="NONE">No numbering — headings only</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <div class="qtext">11. Tone and register</div>
+    <select id="p-tone">
+      <option value="FORMAL_THIRD">Formal, third person, outcome-focused</option>
+      <option value="FORMAL_FIRST">Formal, first person plural ("we agreed")</option>
+      <option value="NEUTRAL">Neutral and plain</option>
+      <option value="INFORMAL">Informal and conversational</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <div class="qtext">12. Speaker attribution in the body text</div>
+    <div class="qhint">Whether points are tied to who said them.</div>
+    <select id="p-attribution">
+      <option value="NEVER">Never — record the point, not the speaker (recommended)</option>
+      <option value="DECISIONS">Only for decisions and commitments</option>
+      <option value="ALWAYS">Always name the speaker</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <div class="qtext">13. Status values used in the table</div>
+    <div class="qhint">Comma-separated. Leave as-is unless your organisation uses different terms.</div>
+    <input type="text" id="p-status" placeholder="In Progress, Pending, No Action, Closed" value="In Progress, Pending, No Action">
+  </div>
+
+  <div class="item">
+    <div class="qtext">14. Project-specific terminology</div>
+    <div class="qhint">Technical terms or abbreviations the pipeline must spell exactly. Comma-separated. Optional.</div>
+    <input type="text" id="p-terms" placeholder="e.g. precast panels, ROW, BQ, RFI">
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Section 5 — Pipeline behaviour</h2><p>How the learning loop runs</p></div>
+
+  <div class="item">
+    <div class="qtext">15. Supervisor activation threshold</div>
+    <div class="qhint">How many logged corrections before the supervisor-alignment agent starts applying recurring preferences.</div>
+    <select id="p-threshold">
+      <option value="3">3 — start adapting early (default)</option>
+      <option value="5">5 — balanced</option>
+      <option value="10">10 — only well-established patterns</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <div class="qtext">16. Create a double-click launcher in the project folder</div>
+    <div class="qhint">A .command file that opens Claude Code in the right folder. macOS only.</div>
+    <select id="p-launcher">
+      <option value="YES">Yes — create the launcher</option>
+      <option value="NO">No</option>
+    </select>
+  </div>
+
+  <div class="item">
+    <div class="qtext">17. Anything else Claude should know about this project</div>
+    <div class="qhint">Optional. Free text — scope, quirks, naming conventions, anything unusual.</div>
+    <textarea id="p-notes" placeholder="Optional"></textarea>
+  </div>
+</div>
+
+<div class="submit-bar">
+  <span class="submit-hint">Review, then generate your setup block</span>
+  <button class="btn-submit" onclick="doSubmit()">Generate setup block</button>
+</div>
+
+</div>
+</div>
+
+<script>
+const PREFILL = __PREFILL__;
+
+/* ---------- roster ---------- */
+function addRosterRow(name, org, title){
+  const wrap = document.getElementById('roster-wrap');
+  const row = document.createElement('div');
+  row.className = 'roster-row';
+  const mk = (ph, val) => {
+    const i = document.createElement('input');
+    i.type = 'text'; i.placeholder = ph; i.value = val || '';
+    return i;
+  };
+  row.appendChild(mk('Jane Smith', name));
+  row.appendChild(mk('Acme Corp', org));
+  row.appendChild(mk('Structural Engineer', title));
+  const x = document.createElement('button');
+  x.className = 'btn-x'; x.textContent = '×'; x.title = 'Remove';
+  x.onclick = () => row.remove();
+  row.appendChild(x);
+  wrap.appendChild(row);
+}
+
+function readRoster(){
+  const out = [];
+  document.querySelectorAll('#roster-wrap .roster-row').forEach(r => {
+    const f = r.querySelectorAll('input');
+    const name = f[0].value.trim(), org = f[1].value.trim(), title = f[2].value.trim();
+    if (name || org || title) out.push({name, org, title});
+  });
+  return out;
+}
+
+function fillOrgsFromRoster(){
+  const orgs = [];
+  readRoster().forEach(p => { if (p.org && orgs.indexOf(p.org) === -1) orgs.push(p.org); });
+  if (orgs.length) document.getElementById('p-orgs').value = orgs.join(', ');
+}
+
+/* ---------- folder mode ---------- */
+function syncFolderMode(){
+  const existing = document.getElementById('p-folder-mode').value === 'EXISTING';
+  document.getElementById('folder-name-wrap').hidden = !existing;
+}
+
+/* ---------- prefill ---------- */
+function setVal(id, v){
+  if (v === undefined || v === null || v === '') return false;
+  const el = document.getElementById(id);
+  if (!el) return false;
+  el.value = v;
+  return true;
+}
+
+function applyPrefill(){
+  const p = PREFILL || {};
+  if (setVal('p-name', p.project)) document.getElementById('pf-name').hidden = false;
+  setVal('p-path', p.path);
+  setVal('p-template', p.templateSource);
+  setVal('p-orgs', p.orgs);
+  setVal('p-status', p.statusValues);
+  setVal('p-terms', p.terms);
+  if (p.folderName){
+    document.getElementById('p-folder-mode').value = 'EXISTING';
+    setVal('p-folder-name', p.folderName);
+  }
+  ['p-action-col','p-date-format','p-numbering','p-tone','p-attribution','p-threshold'].forEach(id => {
+    const key = {'p-action-col':'actionColumn','p-date-format':'dateFormat','p-numbering':'numbering',
+                 'p-tone':'tone','p-attribution':'attribution','p-threshold':'threshold'}[id];
+    const v = p[key];
+    if (v === undefined || v === null || v === '') return;
+    const el = document.getElementById(id);
+    if ([...el.options].some(o => o.value === String(v))) el.value = String(v);
+  });
+  if (p.roster && p.roster.length){
+    p.roster.forEach(r => addRosterRow(r.name, r.org, r.title));
+    document.getElementById('pf-roster').hidden = false;
+    if (p.orgs) document.getElementById('pf-orgs').hidden = false;
+  }
+  if (p.sourceNote) document.getElementById('meta-line').textContent = p.sourceNote;
+  syncFolderMode();
+  if (!document.querySelectorAll('#roster-wrap .roster-row').length){
+    addRosterRow(); addRosterRow(); addRosterRow();
+  }
+}
+
+/* ---------- validation ---------- */
+function fail(id, on){
+  const el = document.getElementById(id);
+  const msg = document.getElementById('e-' + id);
+  if (el) el.classList.toggle('err', on);
+  if (msg) msg.style.display = on ? 'block' : 'none';
+  return on;
+}
+
+function validate(){
+  let bad = false;
+  bad = fail('p-name', !document.getElementById('p-name').value.trim()) || bad;
+  bad = fail('p-path', !document.getElementById('p-path').value.trim()) || bad;
+  bad = fail('p-orgs', !document.getElementById('p-orgs').value.trim()) || bad;
+  if (bad){
+    const first = document.querySelector('.err');
+    if (first) first.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  return !bad;
+}
+
+/* ---------- submit ---------- */
+function v(id){ return (document.getElementById(id).value || '').trim(); }
+
+function doSubmit(){
+  if (!validate()) return;
+  const folderMode = v('p-folder-mode');
+  const folderName = folderMode === 'EXISTING' ? (v('p-folder-name') || 'Meeting Notes') : 'Meeting Notes';
+  const roster = readRoster();
+
+  const L = [];
+  L.push('==PROJECT_SETUP==');
+  L.push('PROJECT_NAME: ' + v('p-name'));
+  L.push('PROJECT_PATH: ' + v('p-path'));
+  L.push('MEETING_NOTES_FOLDER: ' + folderName);
+  L.push('FOLDER_MODE: ' + folderMode);
+  L.push('EXISTING_DOCS: ' + v('p-existing-docs'));
+  L.push('TEMPLATE_SOURCE: ' + (v('p-template') || 'none'));
+  L.push('');
+  L.push('--- ROSTER ---');
+  if (roster.length){
+    roster.forEach(p => L.push('| ' + (p.name || '?') + ' | ' + (p.org || '?') + ' | ' + (p.title || '?') + ' |'));
+  } else {
+    L.push('(none provided)');
+  }
+  L.push('');
+  L.push('--- ATTRIBUTION ---');
+  L.push('ORG_NAMES: ' + v('p-orgs'));
+  L.push('ACTION_COLUMN: ' + v('p-action-col'));
+  L.push('');
+  L.push('--- STYLE ---');
+  L.push('DATE_FORMAT: ' + v('p-date-format'));
+  L.push('NUMBERING: ' + v('p-numbering'));
+  L.push('TONE: ' + v('p-tone'));
+  L.push('SPEAKER_ATTRIBUTION: ' + v('p-attribution'));
+  L.push('STATUS_VALUES: ' + (v('p-status') || 'In Progress, Pending, No Action'));
+  L.push('TERMINOLOGY: ' + (v('p-terms') || 'none'));
+  L.push('');
+  L.push('--- PIPELINE ---');
+  L.push('SUPERVISOR_THRESHOLD: ' + v('p-threshold'));
+  L.push('CREATE_LAUNCHER: ' + v('p-launcher'));
+  L.push('NOTES: ' + (v('p-notes') || 'none'));
+  L.push('');
+  L.push('==END_SETUP==');
+
+  document.getElementById('summary-out').value = L.join('\n');
+  document.getElementById('sum-card').style.display = 'block';
+  document.getElementById('form-wrap').style.display = 'none';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function backToForm(){
+  document.getElementById('sum-card').style.display = 'none';
+  document.getElementById('form-wrap').style.display = 'block';
+  document.getElementById('close-note').style.display = 'none';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+/* ---------- copy ---------- */
+function copyText(){
+  const t = document.getElementById('summary-out');
+  t.removeAttribute('readonly');
+  t.select();
+  t.setSelectionRange(0, 999999);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  t.setAttribute('readonly', 'readonly');
+  if (!ok && navigator.clipboard){
+    navigator.clipboard.writeText(t.value).catch(() => {});
+    ok = true;
+  }
+  return ok;
+}
+
+function doCopy(){
+  const ok = copyText();
+  const b = document.getElementById('copy-btn');
+  b.textContent = ok ? 'Copied ✓' : 'Press ⌘C';
+  setTimeout(() => b.textContent = 'Copy to clipboard', 2000);
+}
+
+function doCopyAndClose(){
+  copyText();
+  const b = document.getElementById('copy-close-btn');
+  b.textContent = 'Copied ✓';
+  setTimeout(() => {
+    window.close();
+    // Browsers refuse close() on tabs the page did not open itself.
+    setTimeout(() => {
+      document.getElementById('close-note').style.display = 'block';
+      b.textContent = 'Copy & close';
+    }, 400);
+  }, 250);
+}
+
+applyPrefill();
+</script>
+</body>
+</html>

@@ -32,11 +32,29 @@ Every correction your supervisor makes becomes a rule. Rules accumulate in proje
 ### Install
 
 1. Clone this repo and open it in Claude Code
-2. Run `/setup-pipeline`
-3. Answer the prompts — project name, folder path, team roster, organisation names
-4. Open your new project folder in Claude Code and you're live
+2. **The setup form opens in your browser automatically** — this is the first-run rule, and it fires once per clone
+3. Fill it in: project name, folder path, team roster, organisation names, and your document style defaults
+4. Click **Generate setup block**, then **Copy to clipboard** or **Copy & close**
+5. Paste the block back into Claude Code — setup runs from there with no further questions
+6. Open your new project folder in Claude Code and you're live
 
 The installer copies the global agents and commands into your `~/.claude/` directory and scaffolds your project folder from the template. It does not overwrite any existing files.
+
+Optional: before filling in the form, upload a past `.docx` set of meeting notes to Claude Code. It reads your roster, organisation names, branding, and style out of the file and reopens the form with those fields already filled in and badged **Prefilled**.
+
+### The first-run form
+
+| | |
+|---|---|
+| Opens | Automatically, on the first Claude Code session after you clone |
+| Fires again | Only if you delete `.claude/.setup-state.json`, or run `/setup-pipeline` by hand |
+| Skip it | `MNP_SKIP_FIRST_RUN=1` |
+| Wired in | `.claude/settings.json` → `SessionStart` → `scripts/first_run_check.py` |
+| Form source | `assets/setup-form.html`, rendered to a gitignored `setup-session.html` |
+
+The generated form is fully self-contained — no network, no CDN, works offline. Nothing is written to your project until you paste the block back into Claude Code, so you can close the tab and walk away at any point.
+
+Setting up a second project later does not use the hook — run `/setup-pipeline` yourself and the same form opens.
 
 ---
 
@@ -44,6 +62,11 @@ The installer copies the global agents and commands into your `~/.claude/` direc
 
 ```
 meeting-notes-pipeline/
+├── assets/
+│   └── setup-form.html    ← the first-run setup form
+├── scripts/
+│   ├── generate_setup_form.py   ← renders + opens the form
+│   └── first_run_check.py       ← SessionStart hook: fires the form once per clone
 ├── global/
 │   ├── commands/          ← installed to ~/.claude/commands/
 │   │   ├── process-notes.md
