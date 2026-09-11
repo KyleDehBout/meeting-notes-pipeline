@@ -6,7 +6,11 @@ Only the <w:body> content paragraphs are removed — the sectPr (which holds
 header/footer relationships) is kept so branding carries through every render.
 
 Usage:
-    python create_blank_template.py <source.docx> <output_blank_template.docx>
+    python3 create_blank_template.py <source.docx> <output_blank_template.docx>
+
+Low-level helper. Normal project setup goes through setup_docx_renderer.py, which
+calls this and also renders the reference files. Use this directly only to rebuild
+a blank template on its own.
 """
 import sys
 import zipfile

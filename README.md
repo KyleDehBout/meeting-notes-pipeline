@@ -93,6 +93,30 @@ meeting-notes-pipeline/
 
 ---
 
+## The document template
+
+During setup you hand the pipeline one branded `.docx` — any past set of meeting notes or a
+letterhead. From it, `/setup-pipeline` builds two things: a blank template carrying your
+headers, footers and logo, and three reference files describing the exact XML your documents
+use (column widths, fonts, numbering IDs, brand colour, tab stops).
+
+**This happens once.** When setup finishes it writes
+`Meeting Notes/skills/docx-renderer/references/.rendered.json`. Every later run — a second
+`/setup-pipeline`, every `/process-notes`, anything else in the pipeline — sees that marker
+and leaves all four files alone. `/process-notes` only ever reads them.
+
+So once you are set up, those files are yours:
+
+- **Change something** — edit the file in `references/` directly. Your edit is permanent.
+- **Start over from a different `.docx`** — re-run setup with `--force`. This discards hand
+  edits and re-derives everything.
+
+The reference prose lives in `skills/docx-renderer/templates/` as `{{token}}` templates.
+Setup substitutes your project's extracted values into them. Editing a template changes what
+*future* projects get; editing a file in `references/` changes this project.
+
+---
+
 ## Per-project setup (after install)
 
 The installer scaffolds your project folder with placeholder content. Before running `/process-notes` for the first time, fill in:

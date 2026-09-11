@@ -44,7 +44,7 @@ If the user uploads no .docx file (uploads only text/paste, or says "skip"):
   and logo automatically."
 - If still none: set TEMPLATE_SOURCE to empty and warn at the end of setup:
   "⚠ No .docx uploaded — the DOCX renderer will not be fully set up. Run this when you have
-  a file: python Meeting Notes/skills/docx-renderer/scripts/setup_docx_renderer.py <source.docx>
+  a file: python3 Meeting Notes/skills/docx-renderer/scripts/setup_docx_renderer.py <source.docx>
   <ProjectName> <Meeting Notes path>"
 
 ### Handling past notes:
@@ -260,21 +260,40 @@ Do not copy .gitkeep files.
 
 ### Run DOCX renderer setup
 
-If TEMPLATE_SOURCE is set, run the comprehensive setup script. This single step creates
-the blank template AND extracts all formatting values (fonts, column widths, spacing,
-colours, tab stops, numIds) from the source document to produce fully-populated reference
-files — no manual editing of reference files required.
+If TEMPLATE_SOURCE is set, run the setup script. This single step creates the blank
+template AND extracts all formatting values (fonts, column widths, spacing, colours,
+tab stops, numIds) from the source document, rendering them into the docx-renderer
+reference files — no manual editing required.
 
 ```bash
-python "[PROJECT_PATH/MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/setup_docx_renderer.py]" \
+python3 "[PROJECT_PATH/MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/setup_docx_renderer.py]" \
   "[TEMPLATE_SOURCE]" \
   "[PROJECT_NAME]" \
-  "[PROJECT_PATH/MEETING_NOTES_FOLDER]"
+  "[PROJECT_PATH/MEETING_NOTES_FOLDER]" \
+  --date-format "[DATE_FORMAT]"
 ```
+
+Pass DATE_FORMAT exactly as the form gave it — it is a literal example date, not a
+strftime pattern. The renderer reference and the style skill's `typography.md` must state
+the same convention; this flag is what keeps them in step.
+
+**This runs once and only once.** The script writes
+`skills/docx-renderer/references/.rendered.json` when it finishes. On any later run it
+sees that marker and exits without touching a single file, so the reference files —
+including anything the user has edited by hand — are never overwritten by a second
+setup, by `/process-notes`, or by anything else in the pipeline.
+
+Never add `--force` on your own initiative. It re-derives every reference file from a
+new .docx and discards hand edits. Use it only when the user explicitly asks to rebuild
+the template from a different document.
 
 If the script completes successfully: save the blank template path as BLANK_TEMPLATE_PATH.
 If it fails: print the error, set BLANK_TEMPLATE_PATH to empty, and warn the user they will
 need to run setup_docx_renderer.py manually before using /process-notes.
+
+If it prints "Setup has already run for this project", that is not an error — the project
+already has its template. Save the existing blank template path as BLANK_TEMPLATE_PATH and
+carry on.
 
 ### Create CLAUDE.md at project root
 Copy [repo-root]/project-template/CLAUDE.md to PROJECT_PATH/CLAUDE.md.
@@ -429,7 +448,10 @@ DOCX blank template created:
 
 [If BLANK_TEMPLATE_PATH is empty:]
 ⚠ DOCX blank template not created — create it before running /process-notes:
-  python MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/create_blank_template.py <source.docx> MEETING_NOTES_FOLDER/PROJECT_NAME_blank_template.docx
+  python3 MEETING_NOTES_FOLDER/skills/docx-renderer/scripts/setup_docx_renderer.py <source.docx> PROJECT_NAME MEETING_NOTES_FOLDER
+
+  This also renders the reference files. It runs once — afterwards the files are yours to
+  edit, and setup will not overwrite them. To rebuild from a different .docx, add --force.
 
 Settings applied from the setup form:
   Date format          DATE_FORMAT

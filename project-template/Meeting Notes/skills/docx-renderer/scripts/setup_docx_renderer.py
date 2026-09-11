@@ -10,20 +10,29 @@ this script:
      images, numbering, and sectPr — producing the blank template
   2. Unpacks the source to extract the exact XML formatting values
      (column widths, numIds, font specs, tab stops, spacing, colours)
-  3. Generates fully-populated reference files for the docx-renderer skill
+  3. Renders the docx-renderer reference files from skills/docx-renderer/templates/,
+     substituting the extracted values into the curated prose
+
+This runs ONCE per project. On every later run it finds references/.rendered.json
+and exits without touching anything, so hand-edits to the reference files survive.
+Pass --force to re-derive everything from a different .docx.
 
 Usage:
-    python setup_docx_renderer.py <source.docx> <project_name> <meeting_notes_dir>
+    python3 setup_docx_renderer.py <source.docx> <project_name> <meeting_notes_dir> [--force]
 
 Outputs:
     <meeting_notes_dir>/<project_name>_blank_template.docx
     <meeting_notes_dir>/skills/docx-renderer/references/title-and-attendees.md
     <meeting_notes_dir>/skills/docx-renderer/references/table-structure.md
     <meeting_notes_dir>/skills/docx-renderer/references/footer-and-special.md
+    <meeting_notes_dir>/skills/docx-renderer/references/.rendered.json
 """
 
 import sys
 import os
+import re
+import json
+import datetime
 import zipfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -412,585 +421,172 @@ def extract_values(src_path):
     return v
 
 
-# ── Reference file generation ─────────────────────────────────────────────────
+# ── Reference file rendering ──────────────────────────────────────────────────
 
-def gen_title_and_attendees(v, project_name):
-    cw = v['col_widths']
-    col1_w = cw[0] if cw else '490'
+TEMPLATE_NAMES = [
+    'title-and-attendees.md',
+    'table-structure.md',
+    'footer-and-special.md',
+]
 
-    t_font  = v.get('tbl_font', 'Times New Roman')
-    t_sz    = v.get('tbl_sz', '22')
-    t_lang  = v.get('tbl_lang', 'en-GB')
-    a_font  = v.get('att_font', 'Times New Roman')
-    a_sz    = v.get('att_sz', '22')
-    a_sz_cs = v.get('att_sz_cs', a_sz)
-    a_lang  = v.get('att_lang', 'en-GB')
-    a_line  = v.get('att_line', '276')
+TOKEN_RE = re.compile(r'\{\{([a-z0-9_]+)\}\}')
 
-    return f"""# Title Block and Attendees Reference
+# Values extracted from the source .docx are parsed XML — "&amp;" has already become
+# "&". Re-emitting them into the XML examples in the reference files needs them escaped
+# again, or the pattern the renderer copies is malformed. Tokens used inside ```xml
+# blocks are the _xml variants; the bare token stays readable for prose.
+XML_TEXT_TOKENS = ['project_name', 'org_name', 'org_suffix',
+                   'att_font', 'tbl_font', 'footer_font']
 
-## Contents
-- Page setup (sectPr)
-- Title block paragraphs
-- Attendees label
-- Attendee rows
-
----
-
-## Page setup
-
-Copy `<w:sectPr>` verbatim from the unpacked template. Do not recalculate.
-
-```xml
-<w:pgSz w:w="{v['page_w']}" w:h="{v['page_h']}"/>
-<w:pgMar w:top="{v['mar_top']}" w:right="{v['mar_right']}" w:bottom="{v['mar_bottom']}" w:left="{v['mar_left']}"
-         w:header="{v['mar_header']}" w:footer="{v['mar_footer']}" w:gutter="{v['mar_gutter']}"/>
-<w:cols w:space="{v['cols_space']}"/>
-{('<w:titlePg/>') if v.get('title_pg') else '<!-- no titlePg in source -->'}
-```
-
----
-
-## Title block
-
-Four paragraphs in order: project name → "Held on" → date → time.
-All four: centred, bold, no spacing after, line spacing {v['title_line']} auto.
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:spacing w:after="0" w:line="{v['title_line']}" w:lineRule="auto"/>
-    <w:jc w:val="center"/>
-    <w:rPr>
-      <w:b/><w:bCs/>
-      <w:sz w:val="{v['title_sz']}"/><w:szCs w:val="{v['title_sz_cs']}"/>
-      <w:lang w:val="{v['title_lang']}"/>
-    </w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr>
-      <w:b/><w:bCs/>
-      <w:sz w:val="{v['title_sz']}"/><w:szCs w:val="{v['title_sz_cs']}"/>
-      <w:lang w:val="{v['title_lang']}"/>
-    </w:rPr>
-    <w:t>{project_name} - Project Meeting</w:t>
-  </w:r>
-</w:p>
-```
-
-Repeat for: `Held on` / `Thursday June 18, 2026` / `3:00PM`
-
-Date format: `[Day name] [Month] [D], [Year]` — e.g. "Thursday June 18, 2026"
-
-The opening empty paragraph uses the same `<w:rPr>` with no `<w:r>` child.
-
----
-
-## Attendees label
-
-{a_font} {int(a_sz)//2}pt, bold, line spacing {a_line} auto, no spacing after.
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:spacing w:after="0" w:line="{a_line}" w:lineRule="auto"/>
-    <w:rPr>
-      <w:rFonts w:ascii="{a_font}" w:hAnsi="{a_font}"/>
-      <w:b/><w:bCs/>
-      <w:sz w:val="{a_sz}"/><w:szCs w:val="{a_sz_cs}"/>
-      <w:lang w:val="{a_lang}"/>
-    </w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr>
-      <w:rFonts w:ascii="{a_font}" w:hAnsi="{a_font}"/>
-      <w:b/><w:bCs/>
-      <w:sz w:val="{a_sz}"/><w:szCs w:val="{a_sz_cs}"/>
-      <w:lang w:val="{a_lang}"/>
-    </w:rPr>
-    <w:t>Attendees:</w:t>
-  </w:r>
-</w:p>
-```
-
----
-
-## Attendee rows
-
-One paragraph per person. Tab stops: Name (0) / Company ({v['att_tab_company']} DXA) / Position ({v['att_tab_position']} DXA).
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:tabs>
-      <w:tab w:val="left" w:pos="0"/>
-      <w:tab w:val="left" w:pos="{v['att_tab_company']}"/>
-      <w:tab w:val="left" w:pos="{v['att_tab_position']}"/>
-    </w:tabs>
-    <w:spacing w:after="0" w:line="{a_line}" w:lineRule="auto"/>
-    <w:rPr>
-      <w:rFonts w:ascii="{a_font}" w:hAnsi="{a_font}"/>
-      <w:sz w:val="{a_sz}"/><w:szCs w:val="{a_sz_cs}"/>
-      <w:lang w:val="{a_lang}"/>
-    </w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr>
-      <w:rFonts w:ascii="{a_font}" w:hAnsi="{a_font}"/>
-      <w:sz w:val="{a_sz}"/><w:szCs w:val="{a_sz_cs}"/>
-      <w:lang w:val="{a_lang}"/>
-    </w:rPr>
-    <w:t>Jane Smith</w:t>
-    <w:tab/><w:t>Organisation Name</w:t>
-    <w:tab/><w:t>Project Manager</w:t>
-  </w:r>
-</w:p>
-```
-
-Repeat for each attendee. Follow with two empty paragraphs before the table.
-"""
+DEFAULT_DATE_FORMAT = 'Thursday June 18, 2026'
 
 
-def gen_table_structure(v, project_name):
-    cw = v['col_widths']
+def xml_escape(text):
+    """Escape for both XML text nodes and double-quoted attribute values."""
+    return (str(text).replace('&', '&amp;')
+                     .replace('<', '&lt;')
+                     .replace('>', '&gt;')
+                     .replace('"', '&quot;'))
+
+
+def build_tokens(v, project_name, src_path, date_format=None):
+    """Flatten extracted values into the flat {{token}} vocabulary the templates use."""
+    cw = v.get('col_widths') or ['490', '5696', '2050', '1479']
     while len(cw) < 4:
         cw.append('0')
 
-    t_font = v.get('tbl_font', 'Times New Roman')
-    t_sz   = v.get('tbl_sz', '22')
-    t_lang = v.get('tbl_lang', 'en-GB')
-
-    rpr_block = f"""      <w:rFonts w:ascii="{t_font}" w:hAnsi="{t_font}"/>
-      <w:b/><w:bCs/>
-      <w:sz w:val="{t_sz}"/><w:szCs w:val="{t_sz}"/>
-      <w:lang w:val="{t_lang}"/>"""
-
-    rpr_plain = f"""      <w:rFonts w:ascii="{t_font}" w:hAnsi="{t_font}"/>
-      <w:sz w:val="{t_sz}"/><w:szCs w:val="{t_sz}"/>
-      <w:lang w:val="{t_lang}"/>"""
-
-    return f"""# Main Table Structure Reference
-
-## Contents
-- Table properties
-- Header row
-- Content row — col 1 (row number)
-- Content row — col 2 (discussion content, list levels)
-- Content row — col 3 (action)
-- Content row — col 4 (status)
-- Meetings row (final row)
-
----
-
-## Table properties
-
-Total width {v['tbl_total_w']} DXA. Column widths must sum to exactly {v['tbl_total_w']}.
-
-```xml
-<w:tbl>
-  <w:tblPr>
-    <w:tblStyle w:val="TableGrid"/>
-    <w:tblW w:w="{v['tbl_total_w']}" w:type="dxa"/>
-    <w:tblLook w:val="{v['tbl_look_val']}" w:firstRow="{v['tbl_look_first_row']}" w:lastRow="{v['tbl_look_last_row']}"
-               w:firstColumn="{v['tbl_look_first_col']}" w:lastColumn="{v['tbl_look_last_col']}"
-               w:noHBand="{v['tbl_look_no_hband']}" w:noVBand="{v['tbl_look_no_vband']}"/>
-  </w:tblPr>
-  <w:tblGrid>
-    <w:gridCol w:w="{cw[0]}"/>
-    <w:gridCol w:w="{cw[1]}"/>
-    <w:gridCol w:w="{cw[2]}"/>
-    <w:gridCol w:w="{cw[3]}"/>
-  </w:tblGrid>
-  <!-- rows go here -->
-</w:tbl>
-```
-
-| Col | Width DXA | Role | Alignment |
-|-----|-----------|------|-----------|
-| 1 | {cw[0]} | Auto row number | Centre |
-| 2 | {cw[1]} | Discussion content | Left |
-| 3 | {cw[2]} | Action (company name only) | Centre |
-| 4 | {cw[3]} | Status | Centre |
-
----
-
-## Header row
-
-Row height {v['header_row_h']} DXA. Col 1 is empty; cols 2–4 have bold centred text.
-
-```xml
-<w:tr>
-  <w:trPr><w:trHeight w:val="{v['header_row_h']}"/></w:trPr>
-  <w:tc>
-    <w:tcPr><w:tcW w:w="{cw[0]}" w:type="dxa"/></w:tcPr>
-    <w:p><w:pPr><w:spacing w:after="0"/><w:jc w:val="center"/></w:pPr></w:p>
-  </w:tc>
-  <w:tc>
-    <w:tcPr><w:tcW w:w="{cw[1]}" w:type="dxa"/></w:tcPr>
-    <w:p>
-      <w:pPr>
-        <w:spacing w:after="0"/>
-        <w:jc w:val="center"/>
-        <w:rPr>
-{rpr_block}
-        </w:rPr>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-{rpr_block}
-        </w:rPr>
-        <w:t>{project_name}</w:t>
-      </w:r>
-    </w:p>
-  </w:tc>
-  <!-- Repeat pattern for Action and Status columns with "Action" and "Status" text -->
-</w:tr>
-```
-
----
-
-## Content rows — shared border rule
-
-Every content row cell (except the Meetings row) has a bottom border only:
-
-```xml
-<w:tcBorders>
-  <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-</w:tcBorders>
-```
-
----
-
-## Col 1 — Row number (auto-list)
-
-Renders automatically via numId="{v['num_id']}" — the cell paragraph is empty.
-
-```xml
-<w:tc>
-  <w:tcPr>
-    <w:tcW w:w="{cw[0]}" w:type="dxa"/>
-    <w:tcBorders>
-      <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-    </w:tcBorders>
-  </w:tcPr>
-  <w:p>
-    <w:pPr>
-      <w:pStyle w:val="{v['col1_style']}"/>
-      <w:numPr>
-        <w:ilvl w:val="0"/>
-        <w:numId w:val="{v['num_id']}"/>
-      </w:numPr>
-      <w:spacing w:line="240" w:lineRule="auto"/>
-    </w:pPr>
-  </w:p>
-</w:tc>
-```
-
----
-
-## Col 2 — Content (list hierarchy)
-
-All levels use numId="{v['num_id']}" from `numbering.xml`. Do not redefine — reference only.
-
-### Level 0 — Topic heading (`{v['col2_style_l0']}`, ilvl=0)
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:pStyle w:val="{v['col2_style_l0']}"/>
-    <w:spacing w:line="240" w:lineRule="auto"/>
-    <w:rPr><w:szCs w:val="{t_sz}"/><w:lang w:val="{t_lang}"/></w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr><w:szCs w:val="{t_sz}"/><w:lang w:val="{t_lang}"/></w:rPr>
-    <w:t>Topic heading text</w:t>
-  </w:r>
-</w:p>
-```
-
-### Level 2 — Numbered sub-items (`{v['col2_style_l2']}`, ilvl=2)
-
-Indent: left {v['l2_left']}, hanging {v['l2_hanging']}.
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:pStyle w:val="{v['col2_style_l2']}"/>
-    <w:numPr>
-      <w:ilvl w:val="2"/>
-      <w:numId w:val="{v['num_id']}"/>
-    </w:numPr>
-    <w:spacing w:after="240" w:line="240" w:lineRule="auto"/>
-    <w:ind w:left="{v['l2_left']}" w:hanging="{v['l2_hanging']}"/>
-    <w:rPr><w:bCs w:val="0"/></w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr><w:lang w:val="{t_lang}"/></w:rPr>
-    <w:t>Sub-item text here.</w:t>
-  </w:r>
-</w:p>
-```
-
-### Level 3 — Bullet sub-items (`{v['col2_style_l3']}`, ilvl=3)
-
-Indent: left {v['l3_left']}, hanging {v['l3_hanging']}.
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:pStyle w:val="{v['col2_style_l3']}"/>
-    <w:numPr>
-      <w:ilvl w:val="3"/>
-      <w:numId w:val="{v['num_id']}"/>
-    </w:numPr>
-    <w:spacing w:after="240" w:line="240" w:lineRule="auto"/>
-    <w:ind w:left="{v['l3_left']}" w:hanging="{v['l3_hanging']}"/>
-    <w:rPr><w:bCs w:val="0"/></w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr><w:lang w:val="{t_lang}"/></w:rPr>
-    <w:t>Bullet text here.</w:t>
-  </w:r>
-</w:p>
-```
-
----
-
-## Col 3 — Action
-
-**HARD RULE: Company or team names only. Never individual person names.**
-
-```xml
-<w:tc>
-  <w:tcPr>
-    <w:tcW w:w="{cw[2]}" w:type="dxa"/>
-    <w:tcBorders>
-      <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-    </w:tcBorders>
-  </w:tcPr>
-  <w:p>
-    <w:pPr>
-      <w:spacing w:after="120"/>
-      <w:rPr>
-{rpr_plain}
-      </w:rPr>
-    </w:pPr>
-  </w:p>
-  <w:p>
-    <w:pPr>
-      <w:spacing w:after="0"/>
-      <w:jc w:val="center"/>
-      <w:rPr>
-{rpr_plain}
-      </w:rPr>
-    </w:pPr>
-    <w:r>
-      <w:rPr>
-{rpr_plain}
-      </w:rPr>
-      <w:t>IBEC</w:t>
-    </w:r>
-  </w:p>
-</w:tc>
-```
-
----
-
-## Col 4 — Status
-
-Same structure as Col 3. Permitted values: `In Progress` / `Pending` / `No Action`. No other values.
-
----
-
-## Meetings row (final table row)
-
-Row height {v['meetings_row_h']} DXA. **No bottom border on any cell.** Only col 2 has content.
-
-Cols 1, 3, 4: `<w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p>`
-
-Col 2:
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
-    <w:rPr>
-{rpr_block}
-    </w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr>
-{rpr_block}
-    </w:rPr>
-    <w:t>MEETINGS</w:t>
-  </w:r>
-</w:p>
-<w:p>
-  <w:pPr>
-    <w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
-    <w:rPr>
-{rpr_block}
-    </w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr>
-{rpr_block}
-    </w:rPr>
-    <w:t>The next meeting date is Thursday June 25, 2026.</w:t>
-  </w:r>
-</w:p>
-```
-"""
-
-
-def gen_footer_and_special(v):
-    f_font   = v.get('footer_font', 'Times New Roman')
-    f_sz     = v.get('footer_sz', '22')
-    f_sz_cs  = v.get('footer_sz_cs', f_sz)
-    f_lang   = v.get('footer_lang', 'en-GB')
-    f_before = v.get('footer_spacing_before', '240')
-    org      = v.get('org_name', 'IBEC')
-    suffix   = v.get('org_suffix', ' Limited')
-    color    = v.get('org_color', FALLBACK_ORG_COLOR)
-
-    return f"""# Footer and Special Formatting Reference
-
-## Contents
-- Footer paragraph
-- Superscript ordinal dates
-- Special character escaping
-- Common XML pitfalls
-
----
-
-## Footer paragraph
-
-Placed after `</w:tbl>`, before `<w:sectPr>`. Spacing before {f_before}.
-
-"{org}" is bold, colour `#{color}`. "{suffix.strip()}" is regular weight.
-Requires `xml:space="preserve"` on runs with leading/trailing spaces.
-
-```xml
-<w:p>
-  <w:pPr>
-    <w:spacing w:before="{f_before}"/>
-    <w:rPr>
-      <w:rFonts w:ascii="{f_font}" w:hAnsi="{f_font}"/>
-      <w:sz w:val="{f_sz}"/><w:szCs w:val="{f_sz_cs}"/>
-      <w:lang w:val="{f_lang}"/>
-    </w:rPr>
-  </w:pPr>
-  <w:r>
-    <w:rPr>
-      <w:rFonts w:ascii="{f_font}" w:hAnsi="{f_font}"/>
-      <w:sz w:val="{f_sz}"/><w:szCs w:val="{f_sz_cs}"/>
-      <w:lang w:val="{f_lang}"/>
-    </w:rPr>
-    <w:t xml:space="preserve">Prepared by: </w:t>
-  </w:r>
-  <w:r>
-    <w:rPr>
-      <w:rFonts w:ascii="{f_font}" w:hAnsi="{f_font}"/>
-      <w:b/><w:bCs/>
-      <w:color w:val="{color}"/>
-      <w:sz w:val="{f_sz}"/><w:szCs w:val="{f_sz_cs}"/>
-      <w:lang w:val="{f_lang}"/>
-    </w:rPr>
-    <w:t>{org}</w:t>
-  </w:r>
-  <w:r>
-    <w:rPr>
-      <w:rFonts w:ascii="{f_font}" w:hAnsi="{f_font}"/>
-      <w:sz w:val="{f_sz}"/><w:szCs w:val="{f_sz_cs}"/>
-      <w:lang w:val="{f_lang}"/>
-    </w:rPr>
-    <w:t xml:space="preserve">{suffix}</w:t>
-  </w:r>
-</w:p>
-```
-
----
-
-## Superscript ordinal dates
-
-When a date includes an ordinal suffix (1st, 2nd, 19th, etc.), split into three runs:
-
-```xml
-<w:r>
-  <w:rPr><w:lang w:val="en-US"/></w:rPr>
-  <w:t xml:space="preserve">June 19</w:t>
-</w:r>
-<w:r>
-  <w:rPr>
-    <w:vertAlign w:val="superscript"/>
-    <w:lang w:val="en-US"/>
-  </w:rPr>
-  <w:t>th</w:t>
-</w:r>
-<w:r>
-  <w:rPr><w:lang w:val="en-US"/></w:rPr>
-  <w:t xml:space="preserve"> 2026</w:t>
-</w:r>
-```
-
----
-
-## Special character escaping
-
-| Character | XML entity | Example |
-|-----------|------------|---------|
-| `&` | `&amp;` | `Survey &amp; Topographical Data` |
-| `'` (apostrophe) | `&#x2019;` | `it&#x2019;s` |
-| `"` (open quote) | `&#x201C;` | `&#x201C;quoted&#x201D;` |
-| `"` (close quote) | `&#x201D;` | see above |
-
-Raw `&` in `<w:t>` content will corrupt the XML. Always escape.
-
----
-
-## Common XML pitfalls
-
-| Pitfall | Fix |
-|---------|-----|
-| Leading/trailing space stripped | Add `xml:space="preserve"` to `<w:t>` |
-| Raw `&` in text | Replace with `&amp;` |
-| New numbering definitions | Never — reference existing numId="{v['num_id']}" from `numbering.xml` |
-| Modifying header/footer files | Never — leave all `header*.xml`, `footer*.xml`, `word/media/` untouched |
-| Using npm `docx` library | Never — template clone + XML edit only |
-| Person names in Action column | Never — companies/teams only |
-| Status values outside the permitted set | Never — `In Progress`, `Pending`, `No Action` only |
-"""
+    tokens = {k: str(val) for k, val in v.items()
+              if not k.startswith('_') and not isinstance(val, (list, dict, bool))}
+
+    tokens.update({
+        'project_name':  project_name,
+        'source_docx':   os.path.basename(src_path),
+        'rendered_on':   datetime.date.today().isoformat(),
+        'col1_w':        cw[0],
+        'col2_w':        cw[1],
+        'col3_w':        cw[2],
+        'col4_w':        cw[3],
+        'title_pg_tag':  '<w:titlePg/>' if v.get('title_pg') else '',
+        'date_format':   date_format or DEFAULT_DATE_FORMAT,
+    })
+
+    # XML-safe twins for every token that appears inside an ```xml block.
+    for key in XML_TEXT_TOKENS:
+        tokens[key + '_xml'] = xml_escape(tokens.get(key, ''))
+
+    if v.get('org_color_extracted'):
+        tokens['org_color_warning'] = (
+            f"Brand colour `#{v['org_color']}` was read from the template's "
+            '"Prepared by" paragraph.'
+        )
+    else:
+        tokens['org_color_warning'] = (
+            f"> **Warning:** the brand colour was NOT found in the source template — "
+            f"`#{v.get('org_color', FALLBACK_ORG_COLOR)}` is a neutral fallback. "
+            'Set it by hand, or re-run setup against a .docx that has a "Prepared by" paragraph.'
+        )
+
+    return tokens
+
+
+def render_template(text, tokens, template_name):
+    """Substitute {{token}} placeholders. Unknown tokens are a hard error."""
+    unknown = sorted({m.group(1) for m in TOKEN_RE.finditer(text)} - set(tokens))
+    if unknown:
+        raise ValueError(
+            f"{template_name}: template uses unknown token(s): {', '.join(unknown)}. "
+            "Add them to build_tokens() or fix the template."
+        )
+    rendered = TOKEN_RE.sub(lambda m: tokens[m.group(1)], text)
+    leftover = TOKEN_RE.search(rendered)
+    if leftover:
+        raise ValueError(f"{template_name}: unresolved token {leftover.group(0)} after render")
+    return rendered
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+USAGE = (
+    "Usage: setup_docx_renderer.py <source.docx> <project_name> <meeting_notes_dir>\n"
+    "                              [--force] [--date-format \"<example date>\"]\n"
+    "\n"
+    "Renders the docx-renderer reference files and blank template from a branded .docx.\n"
+    "Runs once: a later run is a no-op unless --force is given.\n"
+    "\n"
+    "  --date-format  The project's header date convention, written as a literal example\n"
+    "                 (e.g. \"Monday 22 June 2026\"). Must match the date rule in the style\n"
+    "                 skill's typography.md. Defaults to \"" + DEFAULT_DATE_FORMAT + "\"."
+)
+
+
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: setup_docx_renderer.py <source.docx> <project_name> <meeting_notes_dir>")
+    argv = sys.argv[1:]
+    force = '--force' in argv
+
+    date_format = None
+    if '--date-format' in argv:
+        i = argv.index('--date-format')
+        if i + 1 >= len(argv):
+            print("ERROR: --date-format needs a value")
+            sys.exit(1)
+        date_format = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+
+    args = [a for a in argv if a != '--force']
+
+    if len(args) != 3:
+        print(USAGE)
         sys.exit(1)
 
-    src, project_name, mn_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+    src, project_name, mn_dir = args
 
     if not os.path.isfile(src):
         print(f"ERROR: source file not found: {src}")
         sys.exit(1)
 
     mn = Path(mn_dir)
-    refs_dir = mn / 'skills' / 'docx-renderer' / 'references'
+    skill_dir = mn / 'skills' / 'docx-renderer'
+    refs_dir = skill_dir / 'references'
+    tpl_dir = skill_dir / 'templates'
+    marker = refs_dir / '.rendered.json'
+
+    if not tpl_dir.is_dir():
+        print(f"ERROR: template directory not found: {tpl_dir}")
+        sys.exit(1)
+
     refs_dir.mkdir(parents=True, exist_ok=True)
+
+    # Already set up? Leave everything alone unless --force.
+    if marker.is_file() and not force:
+        try:
+            prev = json.loads(marker.read_text(encoding='utf-8'))
+        except Exception:
+            prev = {}
+        print("Setup has already run for this project — nothing was changed.")
+        print(f"  Rendered on : {prev.get('rendered_on', 'unknown')}")
+        print(f"  From source : {prev.get('source_docx', 'unknown')}")
+        print("")
+        print("  To change a value, edit the file in references/ directly.")
+        print("  To re-derive everything from a different .docx, re-run with --force.")
+        sys.exit(0)
+
+    # No marker means setup has never completed here, so the reference files present
+    # are the shipped placeholders and MUST be replaced. The marker — not the presence
+    # of a file — is what makes a later run a no-op.
+    replaced_blank = (mn / f'{project_name}_blank_template.docx').is_file()
 
     # 1. Blank template
     blank_dst = mn / f'{project_name}_blank_template.docx'
-    print(f"Creating blank template...")
+    print("Creating blank template...")
     try:
         create_blank_template(src, str(blank_dst))
-        print(f"  OK: {blank_dst}")
+        print(f"  OK: {blank_dst}" + ("  (replaced existing)" if replaced_blank else ""))
     except Exception as e:
         print(f"  ERROR: {e}")
         sys.exit(1)
 
     # 2. Extract values
-    print(f"Extracting template values...")
+    print("Extracting template values...")
     try:
         vals = extract_values(src)
         for note in vals.get('_log', []):
@@ -999,21 +595,43 @@ def main():
         print(f"  ERROR during extraction: {e}")
         sys.exit(1)
 
-    # 3. Generate reference files
-    print(f"Generating reference files...")
-    files = {
-        'title-and-attendees.md': gen_title_and_attendees(vals, project_name),
-        'table-structure.md':     gen_table_structure(vals, project_name),
-        'footer-and-special.md':  gen_footer_and_special(vals),
-    }
-    for fname, content in files.items():
-        path = refs_dir / fname
-        path.write_text(content, encoding='utf-8')
-        print(f"  OK: {path}")
+    tokens = build_tokens(vals, project_name, src, date_format)
 
-    print(f"\nSetup complete.")
-    print(f"  Blank template: {blank_dst}")
+    # 3. Render reference files from templates
+    print("Rendering reference files...")
+    rendered = []
+    for fname in TEMPLATE_NAMES:
+        tpl_path = tpl_dir / fname
+        out_path = refs_dir / fname
+
+        if not tpl_path.is_file():
+            print(f"  ERROR: template not found: {tpl_path}")
+            sys.exit(1)
+
+        try:
+            content = render_template(tpl_path.read_text(encoding='utf-8'), tokens, fname)
+        except ValueError as e:
+            print(f"  ERROR: {e}")
+            sys.exit(1)
+
+        out_path.write_text(content, encoding='utf-8')
+        print(f"  OK: {out_path}")
+        rendered.append(fname)
+
+    # 4. Marker — makes the next run a no-op
+    marker.write_text(json.dumps({
+        'project_name': project_name,
+        'source_docx':  os.path.basename(src),
+        'rendered_on':  datetime.date.today().isoformat(),
+        'date_format':  tokens['date_format'],
+        'rendered':     rendered,
+    }, indent=2) + '\n', encoding='utf-8')
+
+    print("\nSetup complete.")
+    print(f"  Blank template : {blank_dst}")
     print(f"  Reference files: {refs_dir}/")
+    print("\n  These files are now yours. Setup will not rewrite them.")
+    print("  Edit them directly to change anything, or re-run with --force to re-derive.")
 
 
 if __name__ == '__main__':
