@@ -37,9 +37,16 @@ using paths derived from CLAUDE.md:
 - The style rules typography reference
 - The hard rules terminology reference
 
+### DOCX renderer readiness
+Check the "DOCX blank template" path from CLAUDE.md:
+- Present on disk → ✓, and note the date from
+  `skills/docx-renderer/references/.rendered.json` if that file exists
+- Missing → ⚠, because Stage 5 will fail after the other four stages have run
+
 ### Suggested next action
 Determine one clear next step:
-- If any skill file has `[TO BE FILLED IN]`: "Complete your style profile before running /process-notes — see files listed above"
+- If the DOCX blank template is missing: "Run setup_docx_renderer.py to build your document template — /process-notes cannot render without it"
+- Else if any skill file has `[TO BE FILLED IN]`: "Complete your style profile before running /process-notes — see files listed above"
 - Else if transcripts folder is empty: "Drop a transcript in [transcripts path] and run /process-notes"
 - Else if output folder is empty: "Run /process-notes to generate your first draft"
 - Else if intake folder is empty: "Review the draft in [output path], get supervisor approval, drop the final version in [intake path] and run /learn"
@@ -67,6 +74,10 @@ SUPERVISOR STYLE GUIDE
 SKILL FILES
   [✓ Complete | ⚠ Placeholders remain] — [filename]
   (one line per file checked)
+
+DOCX RENDERER
+  Blank template:  [✓ present | ⚠ MISSING — Stage 5 will fail]
+  References set:  [rendered YYYY-MM-DD from <source .docx> | not yet run]
 
 NEXT
   [single recommended action]

@@ -45,7 +45,7 @@ cp "[DOCX blank template]" "[DOCX working dir]/meeting-notes-working.docx"
 Read `DOCX renderer scripts` from CLAUDE.md for the scripts directory path.
 
 ```bash
-python "[DOCX renderer scripts]/unpack.py" \
+python3 "[DOCX renderer scripts]/unpack.py" \
   "[DOCX working dir]/meeting-notes-working.docx" \
   "[DOCX working dir]/unpacked/"
 ```
@@ -69,6 +69,11 @@ For XML patterns, read silently:
 - **[references/title-and-attendees.md](references/title-and-attendees.md)** — Title block and attendees section
 - **[references/table-structure.md](references/table-structure.md)** — Main table, all row types
 - **[references/footer-and-special.md](references/footer-and-special.md)** — Footer paragraph, superscripts, special chars
+
+These three files were rendered once, during `/setup-pipeline`, from this project's own
+branded .docx. They are project-owned: read them, never rewrite them. Nothing in the render
+workflow regenerates them, and the user may have edited them by hand since setup. If a value
+in them looks wrong, say so and stop — do not correct it yourself.
 
 Document structure (top to bottom):
 
@@ -117,7 +122,7 @@ Replace only the content between `<w:body>` and `</w:body>`. Do not alter the ro
 ## Step 5: Repack
 
 ```bash
-python "[DOCX renderer scripts]/repack.py" \
+python3 "[DOCX renderer scripts]/repack.py" \
   "[DOCX working dir]/unpacked/" \
   "[DOCX working dir]/meeting-notes-final.docx"
 ```
@@ -127,25 +132,33 @@ python "[DOCX renderer scripts]/repack.py" \
 ## Step 6: Validate
 
 ```bash
-python "[DOCX renderer scripts]/validate.py" \
+python3 "[DOCX renderer scripts]/validate.py" \
   "[DOCX working dir]/meeting-notes-final.docx"
 ```
 
 **If validation fails, attempt the automatic repair before touching the XML yourself.**
-`repair.py` fixes the known renderer failure modes mechanically — typed-in section
-numbers, chat-UI styles pasted into the document, and numbering that was never linked
-to a live list. It repairs nothing it cannot fix safely, backs the file up to
-`.pre-repair.docx`, and appends every run to the render log.
+`repair.py` fixes the known renderer failure modes mechanically — a typed-in section
+number that duplicates the one Word supplies, and numbering that was never linked to a
+live list. It repairs nothing it cannot fix safely, backs the file up to
+`.pre-repair.docx`, appends every run to the render log, and re-runs `validate.py`
+itself, so its exit code means the document is genuinely valid.
 
 ```bash
-python "[DOCX renderer scripts]/repair.py" \
+python3 "[DOCX renderer scripts]/repair.py" \
   "[DOCX working dir]/meeting-notes-final.docx" \
   --log "[DOCX working dir]/render-log.tsv"
-python "[DOCX renderer scripts]/validate.py" \
-  "[DOCX working dir]/meeting-notes-final.docx"
 ```
 
-Report the repair output as one line. If validation now passes, continue to Step 7.
+Exit code 0 means validation now passes — continue to Step 7. Exit 1 means still
+invalid. Exit 2 means the file could not be read at all.
+
+Do not add `--restyle` unless the validation failure is specifically about chat-UI
+paragraph styles. It remaps every `font-claude-*` / `claude-*` style in the document,
+and a document can carry those legitimately — running it by reflex silently changes
+formatting nobody asked to change.
+
+Report the repair output as one line. Repair prints at most 5 fixes; the full list goes
+to the log file, so never paste the log into your response.
 
 **If validation still fails after the repair:**
 1. Read the error message carefully
