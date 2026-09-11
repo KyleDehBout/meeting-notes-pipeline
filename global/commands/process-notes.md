@@ -102,6 +102,9 @@ Files to pass to the supervisor-alignment agent:
 - Stage 3 draft
 - CLAUDE.md
 - The supervisor style guide file listed in CLAUDE.md
+- The hard rules skill file listed in CLAUDE.md — Stage 4 is the last stage that edits
+  text, so nothing re-validates what it applies; it needs the hard rules to know which
+  preferences it must refuse
 
 Agent applies manually seeded preferences always, and recurring corrections once the
 threshold in CLAUDE.md is reached.
