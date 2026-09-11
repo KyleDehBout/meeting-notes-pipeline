@@ -31,11 +31,16 @@ Diff categories:
 - SUPERVISOR-PREF: matches supervisor's known preferences
 - HARD-RULE: an absolute rule was violated
 
-Target file mapping:
-- WORDING / FORMAT / STRUCTURE → skills/style-rules/SKILL.md or its references
-- HARD-RULE / TERMINOLOGY → skills/hard-rules/SKILL.md or references/terminology.md
-- SUPERVISOR-PREF → the supervisor style guide file listed in CLAUDE.md (project-level)
-- Agent improvements → relevant file in /Users/kylefreeman/.claude/agents/
+Target file mapping. Resolve every path from "Key file locations" in CLAUDE.md — the
+pipeline lives under the project's Meeting Notes folder, so a bare `skills/...` path does
+not resolve. Emit exactly ONE file per change, never "X or its references":
+- WORDING → the style rules skill file listed in CLAUDE.md
+- FORMAT → that skill's `references/typography.md`
+- STRUCTURE → that skill's `references/structure.md`
+- ATTRIBUTION / STATUS / SCOPE / HARD-RULE → the hard rules skill file listed in CLAUDE.md
+- TERMINOLOGY → the hard rules skill's `references/terminology.md`
+- SUPERVISOR-PREF → the supervisor style guide listed in CLAUDE.md, "Recurring corrections"
+- Agent improvements → the relevant file in `~/.claude/agents/`
 
 Also identify up to 5 style Q&A questions — ambiguous changes where intent is unclear.
 Only questions where the answer would produce a specific rule. Prioritise broadest impact.

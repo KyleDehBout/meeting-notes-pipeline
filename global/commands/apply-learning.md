@@ -14,24 +14,59 @@ If valid: proceed silently. Do not echo the block back.
 ## Step 2 — Load CLAUDE.md
 Read CLAUDE.md to get all file paths before writing anything.
 
+## Step 3.0 — Open a run entry in pipeline memory
+Everything this command does is logged under one dated entry. `/audit` counts run
+entries by their date header and counts approved changes by the CATEGORY tag on each
+line, so a cycle that writes rules to skill files but logs nothing here is invisible
+to `/audit` forever.
+
+Append to the pipeline memory file listed in CLAUDE.md:
+
+```
+## [YYYY-MM-DD] — [transcript name from the block header]
+```
+
+Every line written in Steps 3 and 4 goes under this header, in these exact forms:
+
+```
+APPROVED [CATEGORY]: [rule text] — applied to [file]
+REJECTED [DATE]: [rule text] — [reason, or "not applied" if the form gave none]
+DEFERRED [DATE]: [rule text] — no answer given
+DERIVED [CATEGORY]: [rule text] — applied to [file]
+```
+
+CATEGORY is one of WORDING, FORMAT, STRUCTURE, ATTRIBUTION, STATUS, SCOPE,
+TERMINOLOGY, SUPERVISOR-PREF, HARD-RULE. Use the category the block already carries
+on that change — never invent one, and never drop it.
+
 ## Step 3 — Process Section 1: Proposed changes
 For each line marked [APPROVE]:
-- Write the proposed rule to the exact target file specified
-- Do it silently — no confirmation needed, user already approved in the form
+- Resolve the target file. The block names a category and a target; turn it into a
+  real path using "Key file locations" in CLAUDE.md, never a bare `skills/...` path:
+  - WORDING → the style rules skill file listed in CLAUDE.md
+  - FORMAT → that skill's `references/typography.md`
+  - STRUCTURE → that skill's `references/structure.md`
+  - ATTRIBUTION / STATUS / SCOPE / HARD-RULE → the hard rules skill file listed in CLAUDE.md
+  - TERMINOLOGY → the hard rules skill's `references/terminology.md`
+  - SUPERVISOR-PREF → the supervisor style guide, under "Recurring corrections" (see Step 4)
+- Write the rule to that file, silently — the user already approved it in the form
+- Log it: `APPROVED [CATEGORY]: [rule text] — applied to [file]`
 
 For each line marked [REJECT]:
-- Append to the pipeline memory file listed in CLAUDE.md under a new run entry:
-  REJECTED [DATE]: [rule text] — not applied
+- Log it: `REJECTED [DATE]: [rule text] — [reason, or "not applied"]`
+- Write nothing to any skill file
 
 For each line marked [NO ANSWER]:
-- Skip it, log to the pipeline memory file listed in CLAUDE.md as deferred
+- Log it: `DEFERRED [DATE]: [rule text] — no answer given`
+- Write nothing to any skill file
 
 ## Step 4 — Process Section 2: Style Q&A
 For each Q&A pair where an answer is not "(no answer)":
 - Read the question and the answer
 - Derive the most specific rule possible from the answer
 - Determine the correct target file using the paths from CLAUDE.md:
-  - Wording or tone preference → the supervisor style guide file listed in CLAUDE.md → Wording preferences
+  - Supervisor wording or tone preference → the supervisor style guide listed in CLAUDE.md,
+    under **"Recurring corrections"** — never under "Wording preferences"
   - Formatting detail → the style rules skill references/typography.md (derived from the style rules skill path in CLAUDE.md)
   - Section ordering or layout → the style rules skill references/structure.md
   - General style principle → the style rules skill file listed in CLAUDE.md
@@ -39,6 +74,20 @@ For each Q&A pair where an answer is not "(no answer)":
   - Technical term → the hard rules skill references/terminology.md
 - Write the derived rule directly to that file — no confirmation needed
 - The rule must be a single actionable sentence, not a summary of the answer
+- Log it: `DERIVED [CATEGORY]: [rule text] — applied to [file]`
+
+**Why "Recurring corrections" and not "Wording preferences".** The four sections
+"Wording preferences", "Structural preferences", "Scope preferences" and "Promoted
+rules" are applied by `supervisor-alignment` on every run regardless of the threshold.
+They are for preferences a human deliberately seeds. A preference this command derives
+from one cycle has been seen exactly once — writing it there makes a single correction
+permanent immediately, which is the opposite of what the threshold exists to prevent.
+"Recurring corrections" is threshold-gated, so a derived rule only starts influencing
+output once it has been confirmed enough times.
+
+Entries there use the format the style guide defines. If the same rule is already
+present, do not duplicate it — append the new date to the existing entry so its
+repetition count rises.
 
 For each Q&A pair where the answer is "(no answer)":
 - Skip silently

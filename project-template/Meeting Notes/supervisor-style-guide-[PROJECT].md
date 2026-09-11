@@ -34,6 +34,14 @@ all recurring corrections are applied automatically on every run.
 - Do not include items where no decision or action was taken
 -->
 
+<!--
+The three "preferences" sections above and "Promoted rules" below are applied on every
+run regardless of the threshold, so they are for preferences YOU seed deliberately.
+/apply-learning never writes to them — a rule it derived has been seen once, and writing
+it here would make a single correction permanent immediately. Derived rules go to
+"Recurring corrections", which is threshold-gated.
+-->
+
 ## Recurring corrections
 <!--
 Written to automatically by /learn after each approved revision cycle.

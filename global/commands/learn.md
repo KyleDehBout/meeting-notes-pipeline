@@ -19,7 +19,7 @@ If a file exists: proceed.
 - The style rules skill file listed in CLAUDE.md — may receive updates
 - The hard rules skill file listed in CLAUDE.md — may receive updates
 - The supervisor style guide file listed in CLAUDE.md — may receive updates
-- /Users/kylefreeman/.claude/agents/ — agent descriptions may receive updates
+- ~/.claude/agents/ — agent descriptions may receive updates
 
 ## Hand off to learning-reviewer agent
 Pass it both documents and all context files above.
