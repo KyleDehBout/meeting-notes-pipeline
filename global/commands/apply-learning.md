@@ -77,22 +77,35 @@ Other:
 ## Step 6 — Move the final file
 Read the "Issued archive" path from CLAUDE.md.
 Check the intake folder (listed in CLAUDE.md) for the issued file.
-Find the highest numbered file in the issued archive folder.
-Increment by 1.
-Move intake file to the issued archive as: [Project Name] - Meeting Notes #[N].[original extension]
-Clear the intake folder.
-Delete qa-session.html from the project root if it exists.
+Read the existing filenames in the issued archive and follow the naming convention already
+in use there rather than assuming one. Find the highest number, increment by 1, and move
+the intake file to the archive under that name.
+
+Do NOT delete anything in this step — Step 7 clears every folder at once, and only after
+it has verified the archived file is really there.
 
 ## Step 7 — Clean up pipeline folders
-Only run this step if Step 6 completed and the issued file is now confirmed present in
-the issued archive folder. If the archive move did not succeed, skip this step entirely
-(never clear source material when nothing was safely archived).
+Run the cleanup script, passing the exact filename you just archived:
 
-Once the archive is confirmed:
-- Clear the transcripts folder listed in CLAUDE.md (delete its transcript files; leave the
-  folder itself in place).
-- Clear the output folder listed in CLAUDE.md (delete the pipeline draft/render files,
-  including any orphaned `~$` Word lock files; leave the folder itself in place).
+```bash
+bash "[MEETING_NOTES_FOLDER]/skills/pipeline-cleanup/cleanup-cycle.sh" "[archived filename]"
+```
+
+Add `--archive "[Issued archive path from CLAUDE.md]"` if the archive is not the default
+`Archive/` folder beside the pipeline.
+
+The script clears intake/, output/ and transcripts/ and deletes qa-session.html from the
+project root, leaving the folders themselves in place. It refuses to delete anything unless
+the named file is already present and non-empty in the archive, so the archive-confirmed
+precondition is enforced by the script rather than by judgement. Never hand-roll `rm`
+commands for this step, and never pass a filename you have not just verified in the archive.
+
+Exit codes: 0 = cleared, 1 = archive not confirmed and nothing was deleted, 2 = bad usage.
+If the script exits non-zero, nothing was deleted: report the error and stop.
+If it is blocked by a permission prompt, say so plainly in the summary rather than
+attempting the deletions another way.
+
+Use `--dry-run` first if you want to show the user what will go before it goes.
 
 This leaves each cycle's only surviving copy as the numbered file in the issued archive.
 
@@ -113,7 +126,7 @@ Archived to:
 [Project Name] - Meeting Notes #[N].[ext]
 
 Cleaned up:
-transcripts/ and output/ cleared
+intake/, output/ and transcripts/ cleared
 ---
 
 Do not ask follow-up questions. Do not offer next steps.
